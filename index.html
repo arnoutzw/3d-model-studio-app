@@ -365,6 +365,10 @@ body {
           <span class="badge" id="viewer-ext">STL</span>
         </div>
         <div class="viewer-actions">
+          <button class="btn btn-secondary" id="btn-viewer-export" title="Export as 3MF">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export 3MF
+          </button>
           <button class="btn-icon" id="btn-viewer-rename" title="Rename">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
@@ -416,7 +420,8 @@ body {
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "threejs-exporter-pc": "https://cdn.jsdelivr.net/npm/threejs-exporter-pc@1.0.2/index.mjs"
   }
 }
 </script>
@@ -429,6 +434,7 @@ import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
 import { AMFLoader } from 'three/addons/loaders/AMFLoader.js';
 import { GCodeLoader } from 'three/addons/loaders/GCodeLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { exportTo3MF } from 'threejs-exporter-pc';
 
 // ── IndexedDB for model storage ──
 const DB_NAME = 'ModelLibrary';
@@ -648,6 +654,7 @@ const viewerExt = document.getElementById('viewer-ext');
 const viewerInfo = document.getElementById('viewer-info');
 const viewerLoading = document.getElementById('viewer-loading');
 const btnViewerClose = document.getElementById('btn-viewer-close');
+const btnViewerExport = document.getElementById('btn-viewer-export');
 const btnViewerRename = document.getElementById('btn-viewer-rename');
 const btnViewerDelete = document.getElementById('btn-viewer-delete');
 const dropOverlay = document.getElementById('drop-overlay');
@@ -685,6 +692,9 @@ function renderLibrary() {
         </div>
       </div>
       <div class="card-actions">
+        <button class="btn-icon" data-action="export" data-id="${m.id}" title="Export as 3MF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
         <button class="btn-icon" data-action="rename" data-id="${m.id}" title="Rename">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -706,6 +716,7 @@ function renderLibrary() {
         const id = btn.dataset.id;
         if (action === 'rename') showRenameModal(id);
         else if (action === 'delete') deleteModel(id);
+        else if (action === 'export') exportModel(id);
       });
     });
 
@@ -749,6 +760,26 @@ async function deleteModel(id) {
   models = models.filter(m => m.id !== id);
   if (currentViewerId === id) closeViewer();
   renderLibrary();
+}
+
+// ── Export as 3MF ──
+async function exportModel(id) {
+  const m = models.find(m => m.id === id);
+  if (!m) return;
+
+  try {
+    const object = parseModel(m.ext, m.data);
+    const blob = await exportTo3MF(object);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = (m.name || 'model') + '.3mf';
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Export failed:', e);
+    alert('Export failed: ' + e.message);
+  }
 }
 
 // ── Rename ──
@@ -888,6 +919,7 @@ fileInput.addEventListener('change', (e) => {
 });
 
 btnViewerClose.addEventListener('click', closeViewer);
+btnViewerExport.addEventListener('click', () => { if (currentViewerId) exportModel(currentViewerId); });
 btnViewerRename.addEventListener('click', () => { if (currentViewerId) showRenameModal(currentViewerId); });
 btnViewerDelete.addEventListener('click', () => { if (currentViewerId) deleteModel(currentViewerId); });
 
