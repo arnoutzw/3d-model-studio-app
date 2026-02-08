@@ -733,22 +733,26 @@ async function handleFiles(fileList) {
       continue;
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const thumbnail = await renderThumbnail(arrayBuffer, ext);
-    const baseName = file.name.replace(/\.[^.]+$/, '');
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const thumbnail = await renderThumbnail(arrayBuffer, ext);
+      const baseName = file.name.replace(/\.[^.]+$/, '');
 
-    const model = {
-      id: generateId(),
-      name: baseName,
-      ext,
-      size: file.size,
-      data: arrayBuffer,
-      thumbnail,
-      addedAt: Date.now(),
-    };
+      const model = {
+        id: generateId(),
+        name: baseName,
+        ext,
+        size: file.size,
+        data: arrayBuffer,
+        thumbnail,
+        addedAt: Date.now(),
+      };
 
-    await dbPut(model);
-    models.push(model);
+      await dbPut(model);
+      models.push(model);
+    } catch (err) {
+      console.error('Failed to process file:', file.name, err);
+    }
   }
   renderLibrary();
 }
@@ -913,8 +917,10 @@ function closeViewer() {
 
 // ── Event Listeners ──
 btnUpload.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length) handleFiles(e.target.files);
+fileInput.addEventListener('change', async (e) => {
+  if (e.target.files.length) {
+    await handleFiles(Array.from(e.target.files));
+  }
   fileInput.value = '';
 });
 
