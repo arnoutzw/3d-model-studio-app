@@ -30,6 +30,32 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+
+  <!-- Shared Firebase initialisation (runs before module scripts) -->
+  <script>
+    window._firebaseReady = (function() {
+      const config = {
+        apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
+        authDomain: "arnout-s-homelab.firebaseapp.com",
+        projectId: "arnout-s-homelab",
+        storageBucket: "arnout-s-homelab.firebasestorage.app",
+        messagingSenderId: "258011834485",
+        appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
+        measurementId: "G-VXDKDLXP7L"
+      };
+      try {
+        firebase.initializeApp(config);
+        firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(() => {});
+        return firebase.auth().signInAnonymously()
+          .then(() => ({ db: firebase.firestore(), storage: firebase.storage(), ok: true }))
+          .catch(() => ({ db: null, storage: null, ok: false }));
+      } catch(e) {
+        console.error('Firebase init error:', e);
+        return Promise.resolve({ db: null, storage: null, ok: false });
+      }
+    })();
+  </script>
 
   <script type="importmap">
   {
@@ -131,6 +157,10 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Open
         </button>
+        <button id="btn-save-cloud" class="hidden bg-zinc-700 hover:bg-zinc-600 text-zinc-300 font-mono font-bold px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5" title="Save to cloud">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Save
+        </button>
         <input type="file" id="file-input" class="hidden" accept=".stl,.3mf">
         <button id="btn-screenshot" class="text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot (S)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -199,6 +229,16 @@
           <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2.5">Model Info</h3>
           <div id="model-info" class="space-y-1.5 text-xs font-mono">
             <p class="text-zinc-600 italic">No model loaded</p>
+          </div>
+        </section>
+
+        <hr class="border-zinc-800">
+
+        <!-- Saved Models (Cloud) -->
+        <section>
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2.5">Saved Models</h3>
+          <div id="saved-models-list" class="space-y-1.5 text-xs font-mono max-h-[200px] overflow-y-auto">
+            <p class="text-zinc-600 italic">Connecting...</p>
           </div>
         </section>
 
@@ -667,6 +707,9 @@
     let modelMeshes  = [];
     let defaultMat;
     let frameCount = 0, lastFps = 0, fpsTime = 0;
+    let currentFile = null;          // keep ref for cloud save
+    let currentFileBuffer = null;    // raw ArrayBuffer for cloud save
+    let fbServices = null;           // { db, storage } when Firebase is ready
 
     /* ── DOM refs ── */
     const $  = id => document.getElementById(id);
@@ -768,9 +811,11 @@
     function handleFile(file) {
       const ext = file.name.split('.').pop().toLowerCase();
       if (!['stl', '3mf'].includes(ext)) { toast('Unsupported format — use .stl or .3mf', 'error'); return; }
+      currentFile = file;
       showLoading(true);
       const reader = new FileReader();
       reader.onload = e => {
+        currentFileBuffer = e.target.result;
         try {
           if (ext === 'stl') loadSTL(e.target.result, file);
           else load3MF(e.target.result, file);
@@ -853,6 +898,11 @@
       controlsHint.classList.remove('hidden');
       fileBadge.textContent = file.name;
       fileBadge.classList.remove('hidden');
+      // Show save button if Firebase is available
+      if (fbServices) {
+        $('btn-save-cloud').classList.remove('hidden');
+        $('btn-save-cloud').dataset.enabled = '1';
+      }
       // sync material UI state
       applyCurrentMaterialSettings();
       toast('Loaded ' + file.name, 'success');
@@ -1090,6 +1140,156 @@
       });
     });
 
+    /* ── Cloud model storage ── */
+    async function initModelStorage() {
+      try {
+        const fb = await window._firebaseReady;
+        if (!fb || !fb.ok) {
+          renderSavedModels([]);
+          return;
+        }
+        fbServices = fb;
+        // Show save button if a model is already loaded
+        if (currentModel) $('btn-save-cloud').classList.remove('hidden');
+        // Listen for model list changes in real-time
+        fbServices.db.collection('models').orderBy('uploadedAt', 'desc').onSnapshot(
+          snap => {
+            const models = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderSavedModels(models);
+          },
+          err => {
+            console.error('Models sync error:', err);
+            renderSavedModels([]);
+          }
+        );
+      } catch(e) {
+        console.error('Model storage init failed:', e);
+        renderSavedModels([]);
+      }
+    }
+
+    // Save current model to Firebase Storage + metadata to Firestore
+    async function saveModelToCloud() {
+      if (!fbServices || !currentFile || !currentFileBuffer) {
+        toast('No model to save', 'error');
+        return;
+      }
+      const btn = $('btn-save-cloud');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      try {
+        const id = crypto.randomUUID();
+        const ext = currentFile.name.split('.').pop().toLowerCase();
+        const safeName = currentFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `models/${id}/${safeName}`;
+
+        // Upload binary to Storage
+        const ref = fbServices.storage.ref(path);
+        await ref.put(new Blob([currentFileBuffer]), { contentType: 'application/octet-stream' });
+        const downloadURL = await ref.getDownloadURL();
+
+        // Save metadata to Firestore
+        await fbServices.db.collection('models').doc(id).set({
+          name: currentFile.name,
+          size: currentFile.size,
+          format: ext,
+          storagePath: path,
+          downloadURL: downloadURL,
+          uploadedAt: Date.now()
+        });
+
+        toast('Model saved to cloud', 'success');
+      } catch (err) {
+        console.error('Save to cloud failed:', err);
+        toast('Save failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Save';
+      }
+    }
+
+    // Load a model from cloud
+    async function loadModelFromCloud(model) {
+      showLoading(true);
+      try {
+        const resp = await fetch(model.downloadURL);
+        if (!resp.ok) throw new Error('Download failed');
+        const buffer = await resp.arrayBuffer();
+        const file = new File([buffer], model.name, { type: 'application/octet-stream' });
+        currentFile = file;
+        currentFileBuffer = buffer;
+        if (model.format === 'stl') loadSTL(buffer, file);
+        else load3MF(buffer, file);
+      } catch (err) {
+        console.error('Cloud load failed:', err);
+        toast('Load failed: ' + err.message, 'error');
+        showLoading(false);
+      }
+    }
+
+    // Delete a model from cloud
+    async function deleteModelFromCloud(id) {
+      if (!fbServices) return;
+      try {
+        const doc = await fbServices.db.collection('models').doc(id).get();
+        if (doc.exists) {
+          const data = doc.data();
+          try { await fbServices.storage.ref(data.storagePath).delete(); } catch {}
+          await fbServices.db.collection('models').doc(id).delete();
+        }
+        toast('Model deleted', 'success');
+      } catch (err) {
+        console.error('Delete failed:', err);
+        toast('Delete failed: ' + err.message, 'error');
+      }
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function renderSavedModels(models) {
+      const el = $('saved-models-list');
+      if (!models.length) {
+        el.innerHTML = '<p class="text-zinc-600 italic">No saved models</p>';
+        return;
+      }
+      el.innerHTML = models.map(m => {
+        const fmtBadge = m.format === 'stl'
+          ? '<span class="text-[9px] px-1 py-0.5 bg-amber-500/10 text-amber-400 rounded uppercase">stl</span>'
+          : '<span class="text-[9px] px-1 py-0.5 bg-amber-500/10 text-amber-400 rounded uppercase">3mf</span>';
+        return `<div class="flex items-center gap-2 group">
+          <button class="cloud-load-btn flex-1 min-w-0 flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg px-2 py-1.5 transition-colors text-left" data-id="${m.id}">
+            <svg class="w-3 h-3 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            <span class="truncate text-zinc-300 text-[11px]">${m.name}</span>
+            ${fmtBadge}
+          </button>
+          <button class="cloud-del-btn opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-0.5 flex-shrink-0" data-id="${m.id}" title="Delete">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>`;
+      }).join('');
+
+      // Wire buttons
+      el.querySelectorAll('.cloud-load-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = models.find(x => x.id === btn.dataset.id);
+          if (m) loadModelFromCloud(m);
+        });
+      });
+      el.querySelectorAll('.cloud-del-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (confirm('Delete this model from the cloud?')) deleteModelFromCloud(btn.dataset.id);
+        });
+      });
+    }
+
+    // Wire save button
+    $('btn-save-cloud').addEventListener('click', saveModelToCloud);
+
     /* ── animation loop ── */
     function animate() {
       requestAnimationFrame(animate);
@@ -1108,6 +1308,7 @@
     /* ── init ── */
     initScene();
     animate();
+    initModelStorage();
     if (window.innerWidth < 768) panel.style.display = 'none';
 
     // handle PWA file handler launch
@@ -1207,50 +1408,12 @@
 
     /* ──────────────────────────────────────
        Firebase / Firestore integration
+       Uses the shared init from window._firebaseReady
        ────────────────────────────────────── */
 
-    const DEFAULT_FIREBASE_CONFIG = {
-      apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
-      authDomain: "arnout-s-homelab.firebaseapp.com",
-      projectId: "arnout-s-homelab",
-      storageBucket: "arnout-s-homelab.firebasestorage.app",
-      messagingSenderId: "258011834485",
-      appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
-      measurementId: "G-VXDKDLXP7L"
-    };
-
-    function getFirebaseConfig() {
-      // 1. Check localStorage for user-overridden config
-      try {
-        const saved = localStorage.getItem(FB_CONFIG_KEY);
-        if (saved) {
-          const config = JSON.parse(saved);
-          if (config && config.projectId) return config;
-        }
-      } catch {}
-      // 2. Fall back to the built-in default
-      return DEFAULT_FIREBASE_CONFIG;
-    }
-
-    function initFirebase(config) {
-      try {
-        // Avoid re-initializing if already running
-        if (firebase.apps.length) {
-          firebase.apps.forEach(app => app.delete());
-        }
-        firebase.initializeApp(config);
-        db = firebase.firestore();
-        // Enable offline persistence so the app works offline too
-        db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-        // Sign in anonymously (required for Firestore security rules)
-        return firebase.auth().signInAnonymously().then(() => {
-          useFirebase = true;
-          return true;
-        });
-      } catch (e) {
-        console.error('Firebase init error:', e);
-        return Promise.resolve(false);
-      }
+    function initFromSharedFirebase(fb) {
+      db = fb.db;
+      useFirebase = true;
     }
 
     function startRealtimeSync() {
@@ -1392,29 +1555,13 @@
     fbModal.addEventListener('click', e => { if (e.target === fbModal) closeFirebaseModal(); });
 
     $('btn-fb-connect').addEventListener('click', async () => {
-      const raw = fbConfigInput.value.trim();
-      if (!raw) { showFbStatus('Please paste your Firebase config JSON.', false); return; }
-      let config;
-      try {
-        config = JSON.parse(raw);
-      } catch {
-        showFbStatus('Invalid JSON. Paste the firebaseConfig object from Firebase console.', false);
-        return;
-      }
-      if (!config.projectId || !config.apiKey) {
-        showFbStatus('Config must include at least "apiKey" and "projectId".', false);
-        return;
-      }
-
       showFbStatus('Connecting...', true);
       try {
-        const ok = await initFirebase(config);
-        if (!ok) throw new Error('Authentication failed');
-        // Save config for future visits
-        localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(config));
-        // Migrate existing local data to Firestore
+        // Re-check the shared Firebase init promise
+        const fb = await window._firebaseReady;
+        if (!fb || !fb.ok) throw new Error('Authentication failed');
+        initFromSharedFirebase(fb);
         await migrateLocalToFirestore();
-        // Start real-time sync
         startRealtimeSync();
         showFbStatus('Connected! Your inventory is now shared in real time.', true);
         toast('Firebase connected', 'success');
@@ -1447,6 +1594,7 @@
     const btnOpen      = $('btn-open');
     const btnScreenshot = $('btn-screenshot');
     const btnPanel     = $('btn-panel');
+    const btnSaveCloud = $('btn-save-cloud');
 
     function switchTab(tab) {
       if (tab === 'viewer') {
@@ -1460,6 +1608,8 @@
         btnOpen.classList.remove('hidden');
         btnScreenshot.classList.remove('hidden');
         btnPanel.classList.remove('hidden');
+        // Restore save button visibility based on whether a model is loaded
+        if (btnSaveCloud.dataset.enabled === '1') btnSaveCloud.classList.remove('hidden');
         window.dispatchEvent(new Event('resize'));
       } else {
         tabFilaments.classList.add('active', 'text-amber-400');
@@ -1472,6 +1622,7 @@
         btnOpen.classList.add('hidden');
         btnScreenshot.classList.add('hidden');
         btnPanel.classList.add('hidden');
+        btnSaveCloud.classList.add('hidden');
         renderInventory();
       }
     }
@@ -1609,6 +1760,20 @@
       return 'bg-red-500';
     }
 
+    function amazonSearchUrl(f) {
+      // Build a search query: "<brand> <material> filament <diameter>mm <colorName>"
+      const parts = [];
+      if (f.brand) parts.push(f.brand);
+      parts.push(f.material);
+      if (f.material.includes('Resin')) parts.push('resin');
+      else parts.push('filament');
+      if (f.diameter && !f.material.includes('Resin')) parts.push(f.diameter + 'mm');
+      if (f.colorName) parts.push(f.colorName);
+      else if (f.color) parts.push(f.color);
+      const q = encodeURIComponent(parts.join(' '));
+      return `https://www.amazon.nl/s?k=${q}`;
+    }
+
     function renderGrid() {
       const grid = $('filament-grid');
       const empty = $('filament-empty');
@@ -1655,11 +1820,19 @@
               </div>
             </div>
             ${f.notes ? `<p class="text-[10px] font-mono text-zinc-600 italic truncate mb-3" title="${f.notes}">${f.notes}</p>` : ''}
+            ${rem <= 25 ? `<a href="${amazonSearchUrl(f)}" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 w-full bg-amber-500 hover:bg-amber-400 text-zinc-900 text-[11px] font-mono font-bold px-2 py-1.5 rounded-lg transition-colors mb-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+              Order on Amazon.nl
+            </a>` : ''}
             <div class="flex gap-2">
               <button class="btn-edit-filament flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[11px] font-mono px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1" data-id="${f.id}">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Edit
               </button>
+              <a href="${amazonSearchUrl(f)}" target="_blank" rel="noopener" class="btn-order-filament flex-1 bg-zinc-800 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400 text-[11px] font-mono px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                Order
+              </a>
               <button class="btn-del-filament flex-1 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 text-[11px] font-mono px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1" data-id="${f.id}">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 Delete
@@ -1814,11 +1987,11 @@
     loadFromLocalStorage();
     updateSyncStatus('local');
 
-    // Connect to Firebase (uses built-in config or user-overridden config)
-    const savedConfig = getFirebaseConfig();
-    if (savedConfig) {
-      initFirebase(savedConfig).then(ok => {
-        if (ok) {
+    // Connect to Firebase via shared init
+    if (window._firebaseReady) {
+      window._firebaseReady.then(fb => {
+        if (fb.ok) {
+          initFromSharedFirebase(fb);
           startRealtimeSync();
         } else {
           updateSyncStatus('local');
