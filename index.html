@@ -1209,8 +1209,18 @@
        Firebase / Firestore integration
        ────────────────────────────────────── */
 
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
+      authDomain: "arnout-s-homelab.firebaseapp.com",
+      projectId: "arnout-s-homelab",
+      storageBucket: "arnout-s-homelab.firebasestorage.app",
+      messagingSenderId: "258011834485",
+      appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
+      measurementId: "G-VXDKDLXP7L"
+    };
+
     function getFirebaseConfig() {
-      // 1. Check localStorage for user-provided config
+      // 1. Check localStorage for user-overridden config
       try {
         const saved = localStorage.getItem(FB_CONFIG_KEY);
         if (saved) {
@@ -1218,7 +1228,8 @@
           if (config && config.projectId) return config;
         }
       } catch {}
-      return null;
+      // 2. Fall back to the built-in default
+      return DEFAULT_FIREBASE_CONFIG;
     }
 
     function initFirebase(config) {
@@ -1803,7 +1814,7 @@
     loadFromLocalStorage();
     updateSyncStatus('local');
 
-    // Try connecting to Firebase if previously configured
+    // Connect to Firebase (uses built-in config or user-overridden config)
     const savedConfig = getFirebaseConfig();
     if (savedConfig) {
       initFirebase(savedConfig).then(ok => {
