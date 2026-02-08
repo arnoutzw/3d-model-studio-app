@@ -26,6 +26,11 @@
     }
   </script>
 
+  <!-- Firebase SDK (compat for no-build usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
   <script type="importmap">
   {
     "imports": {
@@ -58,6 +63,36 @@
     .toggle-dot   { transition: left 0.2s; }
     input:checked ~ .toggle-track { background-color: #f59e0b; }
     input:checked ~ .toggle-dot   { left: 14px; }
+    /* Tab styles */
+    .tab-btn { position: relative; }
+    .tab-btn.active::after { content: ''; position: absolute; bottom: -2.5px; left: 0; right: 0; height: 2px; background: #f59e0b; border-radius: 1px; }
+    /* Spool card */
+    .spool-card { transition: transform 0.15s, box-shadow 0.15s; }
+    .spool-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    /* Spool ring visualization */
+    .spool-ring { border-radius: 50%; position: relative; }
+    .spool-ring::after { content: ''; position: absolute; top: 30%; left: 30%; width: 40%; height: 40%; border-radius: 50%; background: #18181b; }
+    /* Material badge colors */
+    .mat-pla  { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .mat-abs  { background: rgba(239,68,68,0.12); color: #f87171; }
+    .mat-petg { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .mat-tpu  { background: rgba(168,85,247,0.12); color: #c084fc; }
+    .mat-nylon { background: rgba(251,191,36,0.12); color: #fbbf24; }
+    .mat-asa  { background: rgba(251,146,60,0.12); color: #fb923c; }
+    .mat-pc   { background: rgba(45,212,191,0.12); color: #2dd4bf; }
+    .mat-hips { background: rgba(156,163,175,0.12); color: #9ca3af; }
+    .mat-pva  { background: rgba(129,140,248,0.12); color: #818cf8; }
+    .mat-pp   { background: rgba(253,224,71,0.12); color: #fde047; }
+    .mat-cf   { background: rgba(161,161,170,0.12); color: #a1a1aa; }
+    .mat-wood { background: rgba(180,83,9,0.12); color: #d97706; }
+    .mat-metal { background: rgba(148,163,184,0.12); color: #94a3b8; }
+    .mat-pla-plus { background: rgba(16,185,129,0.12); color: #34d399; }
+    .mat-silk { background: rgba(244,114,182,0.12); color: #f472b6; }
+    .mat-other { background: rgba(113,113,122,0.12); color: #71717a; }
+    /* Modal */
+    .modal-backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    /* Weight bar */
+    .weight-bar { transition: width 0.4s ease-out; }
   </style>
 </head>
 
@@ -75,6 +110,22 @@
         <h1 class="font-mono font-bold text-amber-500 text-sm truncate">3D Model Viewer</h1>
         <span id="file-badge" class="hidden text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-mono truncate max-w-[200px]"></span>
       </div>
+      <!-- Tab navigation -->
+      <div class="flex items-center gap-1 bg-zinc-800/50 rounded-lg p-0.5">
+        <button id="tab-viewer" class="tab-btn active font-mono text-xs px-3 py-1.5 rounded-md transition-colors text-amber-400">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            Viewer
+          </span>
+        </button>
+        <button id="tab-filaments" class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md transition-colors text-zinc-500 hover:text-zinc-300">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/></svg>
+            Filaments
+          </span>
+        </button>
+      </div>
+
       <div class="flex items-center gap-1.5 flex-shrink-0">
         <button id="btn-open" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -92,8 +143,8 @@
     </div>
   </header>
 
-  <!-- ===== MAIN ===== -->
-  <main class="flex" style="height:calc(100vh - 45px)">
+  <!-- ===== MAIN: VIEWER TAB ===== -->
+  <main id="view-viewer" class="flex" style="height:calc(100vh - 45px)">
 
     <!-- Viewport -->
     <div id="viewport" class="flex-1 relative bg-zinc-950 overflow-hidden">
@@ -249,6 +300,8 @@
         <section>
           <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Shortcuts</h3>
           <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] font-mono">
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">1</kbd><span class="text-zinc-500">Viewer tab</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">2</kbd><span class="text-zinc-500">Filaments tab</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">R</kbd><span class="text-zinc-500">Reset view</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">F</kbd><span class="text-zinc-500">Fit to view</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">W</kbd><span class="text-zinc-500">Wireframe</span>
@@ -263,6 +316,339 @@
       </div>
     </aside>
   </main>
+
+  <!-- ===== MAIN: FILAMENT INVENTORY TAB ===== -->
+  <div id="view-filaments" class="hidden" style="height:calc(100vh - 45px)">
+    <div class="h-full overflow-y-auto">
+      <div class="max-w-6xl mx-auto p-6">
+
+        <!-- Header row -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="font-mono font-bold text-lg text-zinc-100">Filament Inventory</h2>
+            <div class="flex items-center gap-2 mt-0.5">
+              <p class="text-xs text-zinc-500 font-mono">Track your 3D printing filament stock</p>
+              <span id="sync-status" class="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                <!-- Filled by JS -->
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-firebase-setup" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors flex items-center gap-1.5" title="Database settings">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              <span id="btn-firebase-label">Connect</span>
+            </button>
+            <button id="btn-add-filament" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Filament
+            </button>
+          </div>
+        </div>
+
+        <!-- Firebase setup banner (shown when not connected) -->
+        <div id="firebase-banner" class="hidden bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p class="text-xs font-mono text-amber-400 font-bold">Local mode — data is stored in this browser only</p>
+              <p class="text-[11px] font-mono text-zinc-500 mt-1">Connect a Firebase database to share inventory across all visitors in real time.</p>
+              <button id="btn-banner-setup" class="mt-2 text-[11px] font-mono text-amber-500 hover:text-amber-400 underline underline-offset-2 transition-colors">Set up Firebase</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div id="filament-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+            <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Total Spools</p>
+            <p id="stat-total" class="text-xl font-mono font-bold text-zinc-100 mt-1">0</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+            <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Materials</p>
+            <p id="stat-materials" class="text-xl font-mono font-bold text-zinc-100 mt-1">0</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+            <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Total Weight</p>
+            <p id="stat-weight" class="text-xl font-mono font-bold text-zinc-100 mt-1">0 kg</p>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+            <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Colors</p>
+            <p id="stat-colors" class="text-xl font-mono font-bold text-zinc-100 mt-1">0</p>
+          </div>
+        </div>
+
+        <!-- Color palette overview -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-3">Color Palette</h3>
+          <div id="color-palette" class="flex flex-wrap gap-1.5 min-h-[32px]">
+            <p class="text-xs text-zinc-600 font-mono italic">No filaments yet</p>
+          </div>
+        </div>
+
+        <!-- Material breakdown -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-3">Material Breakdown</h3>
+          <div id="material-breakdown" class="space-y-2">
+            <p class="text-xs text-zinc-600 font-mono italic">No filaments yet</p>
+          </div>
+        </div>
+
+        <!-- Filter & search bar -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+          <div class="relative flex-1">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="filament-search" type="text" placeholder="Search filaments..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button data-filter="all" class="filter-btn active bg-amber-500/10 text-amber-400 text-[11px] font-mono px-3 py-1.5 rounded-lg border border-amber-500/20 transition-colors">All</button>
+            <div id="filter-buttons" class="flex gap-2 flex-wrap"></div>
+          </div>
+        </div>
+
+        <!-- Filament grid -->
+        <div id="filament-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <!-- Cards rendered by JS -->
+        </div>
+
+        <!-- Empty state for filaments -->
+        <div id="filament-empty" class="text-center py-16">
+          <svg class="w-16 h-16 mx-auto text-zinc-700 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/></svg>
+          <p class="font-mono text-zinc-500 text-sm mb-1">No filaments in inventory</p>
+          <p class="text-xs text-zinc-600">Click <span class="text-amber-500/70 font-mono">Add Filament</span> to get started</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADD/EDIT FILAMENT MODAL ===== -->
+  <div id="filament-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-5">
+          <h3 id="modal-title" class="font-mono font-bold text-sm text-zinc-100">Add Filament</h3>
+          <button id="btn-modal-close" class="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <form id="filament-form" class="space-y-4">
+          <input type="hidden" id="ff-id">
+
+          <!-- Color preview + picker -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Color</label>
+            <div class="flex items-center gap-3">
+              <div id="ff-color-preview" class="w-12 h-12 rounded-lg border-2 border-zinc-700 spool-ring" style="background:#a0a0a8"></div>
+              <div class="flex-1 space-y-2">
+                <input type="color" id="ff-color" value="#a0a0a8" class="w-full h-8 bg-zinc-800 border border-zinc-700 rounded cursor-pointer">
+                <input type="text" id="ff-color-name" placeholder="Color name (e.g. Galaxy Blue)" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+          </div>
+
+          <!-- Material type -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Material</label>
+            <select id="ff-material" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
+              <optgroup label="Standard">
+                <option value="PLA">PLA</option>
+                <option value="PLA+">PLA+</option>
+                <option value="PLA Silk">PLA Silk</option>
+                <option value="ABS">ABS</option>
+                <option value="PETG">PETG</option>
+                <option value="TPU">TPU (Flexible)</option>
+              </optgroup>
+              <optgroup label="Engineering">
+                <option value="Nylon">Nylon (PA)</option>
+                <option value="ASA">ASA</option>
+                <option value="PC">Polycarbonate (PC)</option>
+                <option value="HIPS">HIPS</option>
+                <option value="PVA">PVA (Soluble)</option>
+                <option value="PP">Polypropylene (PP)</option>
+                <option value="PEI">PEI (ULTEM)</option>
+                <option value="PEEK">PEEK</option>
+                <option value="PEKK">PEKK</option>
+              </optgroup>
+              <optgroup label="Composite">
+                <option value="CF-PLA">Carbon Fiber PLA</option>
+                <option value="CF-PETG">Carbon Fiber PETG</option>
+                <option value="CF-Nylon">Carbon Fiber Nylon</option>
+                <option value="CF-ABS">Carbon Fiber ABS</option>
+                <option value="CF-PC">Carbon Fiber PC</option>
+                <option value="GF-Nylon">Glass Fiber Nylon</option>
+                <option value="GF-PP">Glass Fiber PP</option>
+              </optgroup>
+              <optgroup label="Specialty">
+                <option value="Wood">Wood Fill</option>
+                <option value="Metal">Metal Fill</option>
+                <option value="Marble">Marble Fill</option>
+                <option value="Glow">Glow-in-the-Dark</option>
+                <option value="HTPLA">HT-PLA (Heat Treated)</option>
+                <option value="PHA">PHA</option>
+              </optgroup>
+              <optgroup label="Resin (SLA/DLP)">
+                <option value="Standard Resin">Standard Resin</option>
+                <option value="Tough Resin">Tough Resin</option>
+                <option value="Flexible Resin">Flexible Resin</option>
+                <option value="Water-Washable Resin">Water-Washable Resin</option>
+                <option value="ABS-Like Resin">ABS-Like Resin</option>
+                <option value="Castable Resin">Castable Resin</option>
+                <option value="Dental Resin">Dental Resin</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="Other">Other</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Brand -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Brand</label>
+            <input type="text" id="ff-brand" placeholder="e.g. Bambu Lab, Prusament, Hatchbox..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50" list="brand-suggestions">
+            <datalist id="brand-suggestions">
+              <option value="Bambu Lab">
+              <option value="Prusament">
+              <option value="Hatchbox">
+              <option value="eSUN">
+              <option value="Overture">
+              <option value="Polymaker">
+              <option value="Inland">
+              <option value="SUNLU">
+              <option value="Creality">
+              <option value="MatterHackers">
+              <option value="3DXTech">
+              <option value="ColorFabb">
+              <option value="Fillamentum">
+              <option value="Proto-pasta">
+              <option value="FormFutura">
+              <option value="Elegoo">
+              <option value="Anycubic">
+              <option value="Phrozen">
+            </datalist>
+          </div>
+
+          <!-- Diameter -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Diameter</label>
+            <div class="flex gap-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="ff-diameter" value="1.75" checked class="accent-amber-500">
+                <span class="text-xs font-mono text-zinc-300">1.75 mm</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="ff-diameter" value="2.85" class="accent-amber-500">
+                <span class="text-xs font-mono text-zinc-300">2.85 mm</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="ff-diameter" value="0" class="accent-amber-500">
+                <span class="text-xs font-mono text-zinc-300">Resin</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Weight -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Spool Weight (g)</label>
+              <input type="number" id="ff-weight" placeholder="1000" min="0" max="50000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+            </div>
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Remaining (%)</label>
+              <input type="number" id="ff-remaining" value="100" min="0" max="100" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+            </div>
+          </div>
+
+          <!-- Temps -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Nozzle Temp (°C)</label>
+              <input type="number" id="ff-temp-nozzle" placeholder="210" min="0" max="500" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+            </div>
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Bed Temp (°C)</label>
+              <input type="number" id="ff-temp-bed" placeholder="60" min="0" max="200" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50">
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Notes</label>
+            <textarea id="ff-notes" rows="2" placeholder="Optional notes..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 resize-none"></textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex gap-2 pt-2">
+            <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Save</button>
+            <button type="button" id="btn-modal-cancel" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DELETE CONFIRM MODAL ===== -->
+  <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-sm mx-4 p-5">
+      <h3 class="font-mono font-bold text-sm text-zinc-100 mb-2">Delete Filament</h3>
+      <p class="text-xs text-zinc-400 font-mono mb-5">Are you sure you want to remove this filament from your inventory? This cannot be undone.</p>
+      <div class="flex gap-2">
+        <button id="btn-confirm-delete" class="flex-1 bg-red-500 hover:bg-red-400 text-white font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Delete</button>
+        <button id="btn-cancel-delete" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FIREBASE SETUP MODAL ===== -->
+  <div id="firebase-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-mono font-bold text-sm text-zinc-100">Firebase Database Setup</h3>
+          <button id="btn-fb-modal-close" class="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Instructions -->
+          <div class="bg-zinc-800/50 rounded-lg p-3 text-[11px] font-mono text-zinc-400 space-y-1.5">
+            <p class="text-zinc-300 font-bold">Setup instructions:</p>
+            <ol class="list-decimal list-inside space-y-1">
+              <li>Go to <span class="text-amber-400">console.firebase.google.com</span></li>
+              <li>Create a new project (or select existing)</li>
+              <li>Go to <span class="text-amber-400">Build &gt; Firestore Database</span> &gt; Create database</li>
+              <li>Start in <span class="text-amber-400">test mode</span> (or configure rules later)</li>
+              <li>Go to <span class="text-amber-400">Build &gt; Authentication</span> &gt; Sign-in method &gt; Enable <span class="text-amber-400">Anonymous</span></li>
+              <li>Go to <span class="text-amber-400">Project settings</span> (gear icon) &gt; Your apps &gt; Web app</li>
+              <li>Copy the <span class="text-amber-400">firebaseConfig</span> object and paste below</li>
+            </ol>
+          </div>
+
+          <!-- Config input -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Firebase Config (JSON)</label>
+            <textarea id="fb-config-input" rows="8" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abc123"
+}' class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 resize-none"></textarea>
+          </div>
+
+          <!-- Status message -->
+          <div id="fb-setup-status" class="hidden text-xs font-mono rounded-lg p-3"></div>
+
+          <!-- Buttons -->
+          <div class="flex gap-2">
+            <button id="btn-fb-connect" class="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Connect</button>
+            <button id="btn-fb-disconnect" class="hidden flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono px-4 py-2 rounded-lg text-xs transition-colors border border-red-500/20">Disconnect</button>
+            <button id="btn-fb-cancel" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast container -->
   <div id="toasts" class="fixed top-14 right-4 z-50 space-y-2 pointer-events-none"></div>
@@ -658,6 +1044,11 @@
     document.addEventListener('keydown', e => {
       if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
       const k = e.key.toLowerCase();
+      // Tab switching: 1 = Viewer, 2 = Filaments
+      if (k === '1') { if (window._filamentSwitchTab) window._filamentSwitchTab('viewer'); return; }
+      if (k === '2') { if (window._filamentSwitchTab) window._filamentSwitchTab('filaments'); return; }
+      // Viewer-only shortcuts
+      if (viewFilamentsVisible()) return;
       if (k === 'r') { $('btn-reset').click(); }
       else if (k === 'f') { fitToView(); }
       else if (k === 'w') { chkWire.checked = !chkWire.checked; chkWire.dispatchEvent(new Event('change')); }
@@ -667,6 +1058,10 @@
       else if (k === 's' && !e.ctrlKey && !e.metaKey) { $('btn-screenshot').click(); }
       else if (k === 'p') { togglePanel(); }
     });
+
+    function viewFilamentsVisible() {
+      return !document.getElementById('view-filaments')?.classList.contains('hidden');
+    }
 
     // resize
     function onResize() {
@@ -725,6 +1120,715 @@
         }
       });
     }
+  </script>
+
+  <!-- ===== FILAMENT INVENTORY APP ===== -->
+  <script>
+  (function() {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+
+    /* ── Material metadata ── */
+    const MATERIAL_META = {
+      'PLA':       { css: 'mat-pla',      tempNozzle: 210, tempBed: 60 },
+      'PLA+':      { css: 'mat-pla-plus', tempNozzle: 215, tempBed: 60 },
+      'PLA Silk':  { css: 'mat-silk',     tempNozzle: 215, tempBed: 60 },
+      'ABS':       { css: 'mat-abs',      tempNozzle: 240, tempBed: 100 },
+      'PETG':      { css: 'mat-petg',     tempNozzle: 230, tempBed: 80 },
+      'TPU':       { css: 'mat-tpu',      tempNozzle: 220, tempBed: 50 },
+      'Nylon':     { css: 'mat-nylon',    tempNozzle: 260, tempBed: 80 },
+      'ASA':       { css: 'mat-asa',      tempNozzle: 250, tempBed: 100 },
+      'PC':        { css: 'mat-pc',       tempNozzle: 270, tempBed: 110 },
+      'HIPS':      { css: 'mat-hips',     tempNozzle: 230, tempBed: 100 },
+      'PVA':       { css: 'mat-pva',      tempNozzle: 190, tempBed: 45 },
+      'PP':        { css: 'mat-pp',       tempNozzle: 230, tempBed: 85 },
+      'PEI':       { css: 'mat-other',    tempNozzle: 370, tempBed: 160 },
+      'PEEK':      { css: 'mat-other',    tempNozzle: 400, tempBed: 160 },
+      'PEKK':      { css: 'mat-other',    tempNozzle: 360, tempBed: 150 },
+      'CF-PLA':    { css: 'mat-cf',       tempNozzle: 220, tempBed: 60 },
+      'CF-PETG':   { css: 'mat-cf',       tempNozzle: 240, tempBed: 80 },
+      'CF-Nylon':  { css: 'mat-cf',       tempNozzle: 270, tempBed: 80 },
+      'CF-ABS':    { css: 'mat-cf',       tempNozzle: 250, tempBed: 100 },
+      'CF-PC':     { css: 'mat-cf',       tempNozzle: 280, tempBed: 110 },
+      'GF-Nylon':  { css: 'mat-cf',       tempNozzle: 265, tempBed: 80 },
+      'GF-PP':     { css: 'mat-cf',       tempNozzle: 240, tempBed: 85 },
+      'Wood':      { css: 'mat-wood',     tempNozzle: 200, tempBed: 60 },
+      'Metal':     { css: 'mat-metal',    tempNozzle: 210, tempBed: 60 },
+      'Marble':    { css: 'mat-other',    tempNozzle: 210, tempBed: 60 },
+      'Glow':      { css: 'mat-other',    tempNozzle: 210, tempBed: 60 },
+      'HTPLA':     { css: 'mat-pla',      tempNozzle: 215, tempBed: 60 },
+      'PHA':       { css: 'mat-pla',      tempNozzle: 200, tempBed: 55 },
+      'Standard Resin':       { css: 'mat-other', tempNozzle: 0, tempBed: 0 },
+      'Tough Resin':          { css: 'mat-other', tempNozzle: 0, tempBed: 0 },
+      'Flexible Resin':       { css: 'mat-tpu',   tempNozzle: 0, tempBed: 0 },
+      'Water-Washable Resin': { css: 'mat-pva',   tempNozzle: 0, tempBed: 0 },
+      'ABS-Like Resin':       { css: 'mat-abs',   tempNozzle: 0, tempBed: 0 },
+      'Castable Resin':       { css: 'mat-other', tempNozzle: 0, tempBed: 0 },
+      'Dental Resin':         { css: 'mat-other', tempNozzle: 0, tempBed: 0 },
+      'Other':     { css: 'mat-other',    tempNozzle: 200, tempBed: 60 },
+    };
+
+    function matCSS(mat) { return (MATERIAL_META[mat] || MATERIAL_META['Other']).css; }
+
+    /* ── State ── */
+    const STORAGE_KEY = 'filament-inventory';
+    const FB_CONFIG_KEY = 'filament-firebase-config';
+    let filaments = [];
+    let activeFilter = 'all';
+    let searchQuery = '';
+    let deleteTarget = null;
+    let db = null;
+    let useFirebase = false;
+    let firestoreUnsubscribe = null;
+
+    /* ── localStorage helpers ── */
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        filaments = raw ? JSON.parse(raw) : [];
+      } catch { filaments = []; }
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filaments));
+    }
+
+    /* ── Toast helper ── */
+    function toast(msg, type = 'info') {
+      const c = { info: 'border-amber-500/50', error: 'border-red-500/50', success: 'border-green-500/50' };
+      const toastsEl = $('toasts');
+      const el = document.createElement('div');
+      el.className = `toast-enter ${c[type] || c.info} border bg-zinc-900 rounded-lg px-4 py-2 text-xs font-mono text-zinc-300 shadow-lg max-w-xs`;
+      el.textContent = msg;
+      toastsEl.appendChild(el);
+      setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+    }
+
+    /* ──────────────────────────────────────
+       Firebase / Firestore integration
+       ────────────────────────────────────── */
+
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
+      authDomain: "arnout-s-homelab.firebaseapp.com",
+      projectId: "arnout-s-homelab",
+      storageBucket: "arnout-s-homelab.firebasestorage.app",
+      messagingSenderId: "258011834485",
+      appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
+      measurementId: "G-VXDKDLXP7L"
+    };
+
+    function getFirebaseConfig() {
+      // 1. Check localStorage for user-overridden config
+      try {
+        const saved = localStorage.getItem(FB_CONFIG_KEY);
+        if (saved) {
+          const config = JSON.parse(saved);
+          if (config && config.projectId) return config;
+        }
+      } catch {}
+      // 2. Fall back to the built-in default
+      return DEFAULT_FIREBASE_CONFIG;
+    }
+
+    function initFirebase(config) {
+      try {
+        // Avoid re-initializing if already running
+        if (firebase.apps.length) {
+          firebase.apps.forEach(app => app.delete());
+        }
+        firebase.initializeApp(config);
+        db = firebase.firestore();
+        // Enable offline persistence so the app works offline too
+        db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+        // Sign in anonymously (required for Firestore security rules)
+        return firebase.auth().signInAnonymously().then(() => {
+          useFirebase = true;
+          return true;
+        });
+      } catch (e) {
+        console.error('Firebase init error:', e);
+        return Promise.resolve(false);
+      }
+    }
+
+    function startRealtimeSync() {
+      if (!db) return;
+      if (firestoreUnsubscribe) firestoreUnsubscribe();
+
+      firestoreUnsubscribe = db.collection('filaments').onSnapshot(
+        snapshot => {
+          filaments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          filaments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          // Cache locally for offline access
+          saveToLocalStorage();
+          updateSyncStatus('connected');
+          renderInventory();
+        },
+        err => {
+          console.error('Firestore sync error:', err);
+          updateSyncStatus('error');
+        }
+      );
+    }
+
+    async function migrateLocalToFirestore() {
+      // If there's local data that isn't in Firestore yet, upload it
+      const localData = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) localData.push(...JSON.parse(raw));
+      } catch {}
+      if (!localData.length || !db) return;
+
+      const existing = await db.collection('filaments').get();
+      const existingIds = new Set(existing.docs.map(d => d.id));
+      const batch = db.batch();
+      let migrated = 0;
+
+      for (const f of localData) {
+        if (!existingIds.has(f.id)) {
+          const { id, ...data } = f;
+          batch.set(db.collection('filaments').doc(id), data);
+          migrated++;
+        }
+      }
+
+      if (migrated > 0) {
+        await batch.commit();
+        toast(`Migrated ${migrated} filament(s) to cloud`, 'success');
+      }
+    }
+
+    async function saveFilament(entry) {
+      if (useFirebase && db) {
+        const { id, ...data } = entry;
+        await db.collection('filaments').doc(id).set(data);
+        // onSnapshot will update local state automatically
+      } else {
+        const idx = filaments.findIndex(f => f.id === entry.id);
+        if (idx >= 0) {
+          entry.createdAt = filaments[idx].createdAt;
+          filaments[idx] = entry;
+        } else {
+          filaments.unshift(entry);
+        }
+        saveToLocalStorage();
+        renderInventory();
+      }
+    }
+
+    async function deleteFilament(id) {
+      if (useFirebase && db) {
+        await db.collection('filaments').doc(id).delete();
+        // onSnapshot will update local state automatically
+      } else {
+        filaments = filaments.filter(f => f.id !== id);
+        saveToLocalStorage();
+        renderInventory();
+      }
+    }
+
+    /* ── Sync status indicator ── */
+    function updateSyncStatus(state) {
+      const el = $('sync-status');
+      const banner = $('firebase-banner');
+      const fbLabel = $('btn-firebase-label');
+
+      if (state === 'connected') {
+        el.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span> <span class="text-green-400">Synced</span>';
+        el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-green-500/10';
+        banner.classList.add('hidden');
+        fbLabel.textContent = 'Settings';
+      } else if (state === 'error') {
+        el.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-400">Offline</span>';
+        el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/10';
+        fbLabel.textContent = 'Settings';
+      } else {
+        // local-only
+        el.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500"></span> <span class="text-zinc-500">Local</span>';
+        el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-500/10';
+        banner.classList.remove('hidden');
+        fbLabel.textContent = 'Connect';
+      }
+    }
+
+    /* ── Firebase setup modal ── */
+    const fbModal = $('firebase-modal');
+    const fbConfigInput = $('fb-config-input');
+    const fbStatus = $('fb-setup-status');
+
+    function openFirebaseModal() {
+      // Pre-fill with saved config if any
+      const saved = getFirebaseConfig();
+      if (saved) {
+        fbConfigInput.value = JSON.stringify(saved, null, 2);
+        $('btn-fb-disconnect').classList.remove('hidden');
+      } else {
+        fbConfigInput.value = '';
+        $('btn-fb-disconnect').classList.add('hidden');
+      }
+      fbStatus.classList.add('hidden');
+      fbModal.classList.remove('hidden');
+      fbModal.classList.add('flex');
+    }
+
+    function closeFirebaseModal() {
+      fbModal.classList.add('hidden');
+      fbModal.classList.remove('flex');
+    }
+
+    function showFbStatus(msg, ok) {
+      fbStatus.textContent = msg;
+      fbStatus.className = `text-xs font-mono rounded-lg p-3 ${ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`;
+      fbStatus.classList.remove('hidden');
+    }
+
+    $('btn-firebase-setup').addEventListener('click', openFirebaseModal);
+    $('btn-banner-setup').addEventListener('click', openFirebaseModal);
+    $('btn-fb-modal-close').addEventListener('click', closeFirebaseModal);
+    $('btn-fb-cancel').addEventListener('click', closeFirebaseModal);
+    fbModal.addEventListener('click', e => { if (e.target === fbModal) closeFirebaseModal(); });
+
+    $('btn-fb-connect').addEventListener('click', async () => {
+      const raw = fbConfigInput.value.trim();
+      if (!raw) { showFbStatus('Please paste your Firebase config JSON.', false); return; }
+      let config;
+      try {
+        config = JSON.parse(raw);
+      } catch {
+        showFbStatus('Invalid JSON. Paste the firebaseConfig object from Firebase console.', false);
+        return;
+      }
+      if (!config.projectId || !config.apiKey) {
+        showFbStatus('Config must include at least "apiKey" and "projectId".', false);
+        return;
+      }
+
+      showFbStatus('Connecting...', true);
+      try {
+        const ok = await initFirebase(config);
+        if (!ok) throw new Error('Authentication failed');
+        // Save config for future visits
+        localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(config));
+        // Migrate existing local data to Firestore
+        await migrateLocalToFirestore();
+        // Start real-time sync
+        startRealtimeSync();
+        showFbStatus('Connected! Your inventory is now shared in real time.', true);
+        toast('Firebase connected', 'success');
+        setTimeout(closeFirebaseModal, 1500);
+      } catch (err) {
+        console.error('Firebase connect error:', err);
+        showFbStatus('Connection failed: ' + err.message, false);
+        useFirebase = false;
+        db = null;
+      }
+    });
+
+    $('btn-fb-disconnect').addEventListener('click', () => {
+      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
+      localStorage.removeItem(FB_CONFIG_KEY);
+      useFirebase = false;
+      db = null;
+      // Keep local data as-is
+      updateSyncStatus('local');
+      closeFirebaseModal();
+      toast('Disconnected — using local storage', 'info');
+      renderInventory();
+    });
+
+    /* ── Tab switching ── */
+    const tabViewer    = $('tab-viewer');
+    const tabFilaments = $('tab-filaments');
+    const viewViewer   = $('view-viewer');
+    const viewFilamentsEl = $('view-filaments');
+    const btnOpen      = $('btn-open');
+    const btnScreenshot = $('btn-screenshot');
+    const btnPanel     = $('btn-panel');
+
+    function switchTab(tab) {
+      if (tab === 'viewer') {
+        tabViewer.classList.add('active', 'text-amber-400');
+        tabViewer.classList.remove('text-zinc-500');
+        tabFilaments.classList.remove('active', 'text-amber-400');
+        tabFilaments.classList.add('text-zinc-500');
+        viewViewer.classList.remove('hidden');
+        viewViewer.classList.add('flex');
+        viewFilamentsEl.classList.add('hidden');
+        btnOpen.classList.remove('hidden');
+        btnScreenshot.classList.remove('hidden');
+        btnPanel.classList.remove('hidden');
+        window.dispatchEvent(new Event('resize'));
+      } else {
+        tabFilaments.classList.add('active', 'text-amber-400');
+        tabFilaments.classList.remove('text-zinc-500');
+        tabViewer.classList.remove('active', 'text-amber-400');
+        tabViewer.classList.add('text-zinc-500');
+        viewViewer.classList.add('hidden');
+        viewViewer.classList.remove('flex');
+        viewFilamentsEl.classList.remove('hidden');
+        btnOpen.classList.add('hidden');
+        btnScreenshot.classList.add('hidden');
+        btnPanel.classList.add('hidden');
+        renderInventory();
+      }
+    }
+
+    tabViewer.addEventListener('click', () => switchTab('viewer'));
+    tabFilaments.addEventListener('click', () => switchTab('filaments'));
+
+    /* ── Rendering ── */
+    function getFiltered() {
+      let list = filaments;
+      if (activeFilter !== 'all') {
+        list = list.filter(f => f.material === activeFilter);
+      }
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        list = list.filter(f =>
+          (f.colorName || '').toLowerCase().includes(q) ||
+          f.material.toLowerCase().includes(q) ||
+          (f.brand || '').toLowerCase().includes(q) ||
+          f.color.toLowerCase().includes(q) ||
+          (f.notes || '').toLowerCase().includes(q)
+        );
+      }
+      return list;
+    }
+
+    function renderInventory() {
+      renderStats();
+      renderColorPalette();
+      renderMaterialBreakdown();
+      renderFilterButtons();
+      renderGrid();
+    }
+
+    function renderStats() {
+      $('stat-total').textContent = filaments.length;
+      const mats = new Set(filaments.map(f => f.material));
+      $('stat-materials').textContent = mats.size;
+      const totalG = filaments.reduce((s, f) => s + (f.weight || 0) * (f.remaining || 100) / 100, 0);
+      $('stat-weight').textContent = totalG >= 1000 ? (totalG / 1000).toFixed(1) + ' kg' : Math.round(totalG) + ' g';
+      const colors = new Set(filaments.map(f => f.color));
+      $('stat-colors').textContent = colors.size;
+    }
+
+    function renderColorPalette() {
+      const el = $('color-palette');
+      if (!filaments.length) {
+        el.innerHTML = '<p class="text-xs text-zinc-600 font-mono italic">No filaments yet</p>';
+        return;
+      }
+      const colorMap = {};
+      filaments.forEach(f => {
+        if (!colorMap[f.color]) colorMap[f.color] = { color: f.color, name: f.colorName, count: 0 };
+        colorMap[f.color].count++;
+      });
+      const colors = Object.values(colorMap).sort((a, b) => hue(a.color) - hue(b.color));
+      el.innerHTML = colors.map(c =>
+        `<div class="group relative">
+          <div class="w-8 h-8 rounded-lg border-2 border-zinc-700 cursor-default transition-transform hover:scale-110" style="background:${c.color}" title="${c.name || c.color} (${c.count})"></div>
+          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] font-mono text-zinc-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            ${c.name || c.color} <span class="text-zinc-500">&times;${c.count}</span>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    function hue(hex) {
+      const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+      const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+      if (d === 0) return 0;
+      let h;
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      return ((h * 60) + 360) % 360;
+    }
+
+    function renderMaterialBreakdown() {
+      const el = $('material-breakdown');
+      if (!filaments.length) {
+        el.innerHTML = '<p class="text-xs text-zinc-600 font-mono italic">No filaments yet</p>';
+        return;
+      }
+      const counts = {};
+      filaments.forEach(f => { counts[f.material] = (counts[f.material] || 0) + 1; });
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const max = sorted[0][1];
+      el.innerHTML = sorted.map(([mat, count]) => {
+        const pct = Math.round(count / filaments.length * 100);
+        const css = matCSS(mat);
+        return `<div class="flex items-center gap-3">
+          <span class="text-[11px] font-mono w-20 text-zinc-400 shrink-0">${mat}</span>
+          <div class="flex-1 bg-zinc-800 rounded-full h-2 overflow-hidden">
+            <div class="weight-bar h-full rounded-full ${css}" style="width:${(count/max)*100}%; opacity:0.7"></div>
+          </div>
+          <span class="text-[10px] font-mono text-zinc-500 w-14 text-right">${count} &middot; ${pct}%</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderFilterButtons() {
+      const mats = [...new Set(filaments.map(f => f.material))].sort();
+      const container = $('filter-buttons');
+      container.innerHTML = mats.map(m => {
+        const isActive = activeFilter === m;
+        const css = matCSS(m);
+        return `<button data-filter="${m}" class="filter-btn ${isActive ? css : 'bg-zinc-800 text-zinc-400 border-zinc-700'} text-[11px] font-mono px-3 py-1.5 rounded-lg border transition-colors hover:border-zinc-600">${m}</button>`;
+      }).join('');
+
+      const allBtn = document.querySelector('[data-filter="all"]');
+      if (activeFilter === 'all') {
+        allBtn.className = 'filter-btn active bg-amber-500/10 text-amber-400 text-[11px] font-mono px-3 py-1.5 rounded-lg border border-amber-500/20 transition-colors';
+      } else {
+        allBtn.className = 'filter-btn bg-zinc-800 text-zinc-400 text-[11px] font-mono px-3 py-1.5 rounded-lg border border-zinc-700 transition-colors hover:border-zinc-600';
+      }
+
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeFilter = btn.dataset.filter;
+          renderFilterButtons();
+          renderGrid();
+        });
+      });
+    }
+
+    function remainingColor(pct) {
+      if (pct > 50) return 'text-green-400';
+      if (pct > 20) return 'text-amber-400';
+      return 'text-red-400';
+    }
+
+    function remainingBarColor(pct) {
+      if (pct > 50) return 'bg-green-500';
+      if (pct > 20) return 'bg-amber-500';
+      return 'bg-red-500';
+    }
+
+    function renderGrid() {
+      const grid = $('filament-grid');
+      const empty = $('filament-empty');
+      const filtered = getFiltered();
+
+      if (!filtered.length) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      grid.innerHTML = filtered.map(f => {
+        const css = matCSS(f.material);
+        const rem = f.remaining || 100;
+        const weightG = (f.weight || 0) * rem / 100;
+        const isResin = f.material.includes('Resin');
+        return `<div class="spool-card bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden" data-id="${f.id}">
+          <div class="h-2 w-full" style="background:${f.color}"></div>
+          <div class="p-4">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="spool-ring w-14 h-14 flex-shrink-0 border-4" style="background:${f.color}; border-color:${f.color}"></div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-mono font-bold text-sm text-zinc-100 truncate">${f.colorName || f.color}</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="${css} text-[10px] font-mono px-1.5 py-0.5 rounded">${f.material}</span>
+                  ${f.brand ? `<span class="text-[10px] font-mono text-zinc-500 truncate">${f.brand}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="space-y-1.5 text-[11px] font-mono mb-3">
+              ${!isResin && f.diameter ? `<div class="flex justify-between"><span class="text-zinc-500">Diameter</span><span class="text-zinc-400">${f.diameter} mm</span></div>` : ''}
+              ${f.weight ? `<div class="flex justify-between"><span class="text-zinc-500">${isResin ? 'Volume' : 'Weight'}</span><span class="text-zinc-400">${f.weight}${isResin ? ' ml' : ' g'}</span></div>` : ''}
+              ${f.tempNozzle && !isResin ? `<div class="flex justify-between"><span class="text-zinc-500">Nozzle</span><span class="text-zinc-400">${f.tempNozzle}&deg;C</span></div>` : ''}
+              ${f.tempBed && !isResin ? `<div class="flex justify-between"><span class="text-zinc-500">Bed</span><span class="text-zinc-400">${f.tempBed}&deg;C</span></div>` : ''}
+            </div>
+            <div class="mb-3">
+              <div class="flex justify-between mb-1">
+                <span class="text-[10px] font-mono text-zinc-500">Remaining</span>
+                <span class="text-[10px] font-mono ${remainingColor(rem)}">${rem}%${f.weight ? ' &middot; ' + Math.round(weightG) + (isResin ? ' ml' : ' g') : ''}</span>
+              </div>
+              <div class="w-full bg-zinc-800 rounded-full h-1.5">
+                <div class="weight-bar h-full rounded-full ${remainingBarColor(rem)}" style="width:${rem}%"></div>
+              </div>
+            </div>
+            ${f.notes ? `<p class="text-[10px] font-mono text-zinc-600 italic truncate mb-3" title="${f.notes}">${f.notes}</p>` : ''}
+            <div class="flex gap-2">
+              <button class="btn-edit-filament flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[11px] font-mono px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1" data-id="${f.id}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+              <button class="btn-del-filament flex-1 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 text-[11px] font-mono px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1" data-id="${f.id}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      grid.querySelectorAll('.btn-edit-filament').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+      });
+      grid.querySelectorAll('.btn-del-filament').forEach(btn => {
+        btn.addEventListener('click', () => openDeleteModal(btn.dataset.id));
+      });
+    }
+
+    /* ── Filament form modal ── */
+    const modal = $('filament-modal');
+    const form = $('filament-form');
+    const colorInput = $('ff-color');
+    const colorPreview = $('ff-color-preview');
+
+    colorInput.addEventListener('input', () => {
+      colorPreview.style.background = colorInput.value;
+    });
+
+    function openAddModal() {
+      $('modal-title').textContent = 'Add Filament';
+      $('ff-id').value = '';
+      form.reset();
+      colorPreview.style.background = '#a0a0a8';
+      colorInput.value = '#a0a0a8';
+      $('ff-remaining').value = '100';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      $('ff-color-name').focus();
+    }
+
+    function openEditModal(id) {
+      const f = filaments.find(x => x.id === id);
+      if (!f) return;
+      $('modal-title').textContent = 'Edit Filament';
+      $('ff-id').value = f.id;
+      colorInput.value = f.color;
+      colorPreview.style.background = f.color;
+      $('ff-color-name').value = f.colorName || '';
+      $('ff-material').value = f.material;
+      $('ff-brand').value = f.brand || '';
+      const diamRadios = document.querySelectorAll('[name="ff-diameter"]');
+      diamRadios.forEach(r => { r.checked = r.value === String(f.diameter || 1.75); });
+      $('ff-weight').value = f.weight || '';
+      $('ff-remaining').value = f.remaining ?? 100;
+      $('ff-temp-nozzle').value = f.tempNozzle || '';
+      $('ff-temp-bed').value = f.tempBed || '';
+      $('ff-notes').value = f.notes || '';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    $('btn-add-filament').addEventListener('click', openAddModal);
+    $('btn-modal-close').addEventListener('click', closeModal);
+    $('btn-modal-cancel').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    // Auto-fill temps when material changes
+    $('ff-material').addEventListener('change', () => {
+      const mat = $('ff-material').value;
+      const meta = MATERIAL_META[mat];
+      if (meta && !$('ff-temp-nozzle').value) $('ff-temp-nozzle').value = meta.tempNozzle || '';
+      if (meta && !$('ff-temp-bed').value) $('ff-temp-bed').value = meta.tempBed || '';
+      if (mat.includes('Resin')) {
+        document.querySelectorAll('[name="ff-diameter"]').forEach(r => { r.checked = r.value === '0'; });
+      }
+    });
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = $('ff-id').value || crypto.randomUUID();
+      const diameterRadio = document.querySelector('[name="ff-diameter"]:checked');
+      const isEdit = !!$('ff-id').value;
+      const entry = {
+        id,
+        color: colorInput.value,
+        colorName: $('ff-color-name').value.trim(),
+        material: $('ff-material').value,
+        brand: $('ff-brand').value.trim(),
+        diameter: parseFloat(diameterRadio?.value || '1.75'),
+        weight: parseInt($('ff-weight').value) || 0,
+        remaining: Math.min(100, Math.max(0, parseInt($('ff-remaining').value) || 100)),
+        tempNozzle: parseInt($('ff-temp-nozzle').value) || 0,
+        tempBed: parseInt($('ff-temp-bed').value) || 0,
+        notes: $('ff-notes').value.trim(),
+        updatedAt: Date.now(),
+        createdAt: isEdit ? (filaments.find(f => f.id === id)?.createdAt || Date.now()) : Date.now(),
+      };
+
+      closeModal();
+
+      try {
+        await saveFilament(entry);
+        toast(isEdit ? 'Filament updated' : 'Filament added', 'success');
+      } catch (err) {
+        console.error('Save error:', err);
+        toast('Save failed: ' + err.message, 'error');
+      }
+    });
+
+    /* ── Delete ── */
+    const delModal = $('delete-modal');
+
+    function openDeleteModal(id) {
+      deleteTarget = id;
+      delModal.classList.remove('hidden');
+      delModal.classList.add('flex');
+    }
+
+    function closeDeleteModal() {
+      delModal.classList.add('hidden');
+      delModal.classList.remove('flex');
+      deleteTarget = null;
+    }
+
+    $('btn-confirm-delete').addEventListener('click', async () => {
+      if (deleteTarget) {
+        try {
+          await deleteFilament(deleteTarget);
+          toast('Filament removed', 'success');
+        } catch (err) {
+          console.error('Delete error:', err);
+          toast('Delete failed: ' + err.message, 'error');
+        }
+      }
+      closeDeleteModal();
+    });
+    $('btn-cancel-delete').addEventListener('click', closeDeleteModal);
+    delModal.addEventListener('click', e => { if (e.target === delModal) closeDeleteModal(); });
+
+    /* ── Search ── */
+    $('filament-search').addEventListener('input', e => {
+      searchQuery = e.target.value;
+      renderGrid();
+    });
+
+    /* ── Init ── */
+    // Load cached local data first (instant render)
+    loadFromLocalStorage();
+    updateSyncStatus('local');
+
+    // Connect to Firebase (uses built-in config or user-overridden config)
+    const savedConfig = getFirebaseConfig();
+    if (savedConfig) {
+      initFirebase(savedConfig).then(ok => {
+        if (ok) {
+          startRealtimeSync();
+        } else {
+          updateSyncStatus('local');
+        }
+      });
+    }
+
+    // Expose switchTab for keyboard shortcut
+    window._filamentSwitchTab = switchTab;
+  })();
   </script>
 
   <!-- Service Worker -->
