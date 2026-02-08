@@ -1,0 +1,29 @@
+{
+  "name": "3D Model Viewer — STL / 3MF",
+  "short_name": "3D Viewer",
+  "description": "View and inspect STL and 3MF 3D printing files in the browser",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#09090b",
+  "background_color": "#09090b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "model/stl": [".stl"],
+        "model/3mf": [".3mf"],
+        "application/vnd.ms-package.3dmanufacturing-3dmodel+xml": [".3mf"]
+      }
+    }
+  ]
+}

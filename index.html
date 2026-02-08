@@ -1,979 +1,739 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Model Library</title>
-<style>
-:root {
-  --bg-0: #09090b;
-  --bg-1: #18181b;
-  --bg-2: #27272a;
-  --bg-3: #3f3f46;
-  --tx-1: #f4f4f5;
-  --tx-2: #a1a1aa;
-  --tx-3: #71717a;
-  --accent: #f59e0b;
-  --accent-h: #d97706;
-  --accent-bg: rgba(245,158,11,.12);
-  --danger: #ef4444;
-  --success: #22c55e;
-  --border: #27272a;
-  --radius: 8px;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg-0);
-  color: var(--tx-1);
-  min-height: 100vh;
-  overflow: hidden;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Model Viewer</title>
+  <meta name="description" content="View and inspect STL and 3MF 3D printing files in the browser">
+  <meta name="theme-color" content="#09090b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
 
-/* ── Header ── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: var(--bg-1);
-  border-bottom: 1px solid var(--border);
-  height: 56px;
-  flex-shrink: 0;
-}
-.header h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.header h1 svg { width: 20px; height: 20px; }
-.header-actions { display: flex; gap: 8px; align-items: center; }
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-/* ── Buttons ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-}
-.btn svg { width: 15px; height: 15px; }
-.btn-primary { background: var(--accent); color: var(--bg-0); }
-.btn-primary:hover { background: var(--accent-h); }
-.btn-secondary { background: var(--bg-2); color: var(--tx-2); border: 1px solid var(--bg-3); }
-.btn-secondary:hover { background: var(--bg-3); color: var(--tx-1); }
-.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
-.btn-danger:hover { background: var(--danger); color: var(--tx-1); }
-.btn-icon {
-  width: 34px; height: 34px; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--bg-2); color: var(--tx-2); border: 1px solid var(--bg-3);
-  border-radius: 6px; cursor: pointer; transition: all .15s;
-}
-.btn-icon:hover { background: var(--bg-3); color: var(--tx-1); }
-.btn-icon svg { width: 16px; height: 16px; }
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
 
-/* ── Layout ── */
-.app { display: flex; flex-direction: column; height: 100vh; }
-.content { flex: 1; overflow: hidden; position: relative; }
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+    }
+  }
+  </script>
 
-/* ── Library Grid ── */
-.library {
-  padding: 20px;
-  overflow-y: auto;
-  height: 100%;
-}
-.library-info {
-  font-size: 12px;
-  color: var(--tx-3);
-  margin-bottom: 16px;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-.card {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  cursor: pointer;
-  transition: border-color .15s, transform .1s;
-}
-.card:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-.card-thumb {
-  width: 100%;
-  aspect-ratio: 4/3;
-  background: var(--bg-0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-.card-thumb canvas {
-  width: 100%;
-  height: 100%;
-}
-.card-thumb .placeholder-icon {
-  color: var(--bg-3);
-}
-.card-thumb .placeholder-icon svg { width: 48px; height: 48px; }
-.card-body {
-  padding: 10px 12px;
-  border-top: 1px solid var(--border);
-}
-.card-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--tx-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 4px;
-}
-.card-ext {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 600;
-  background: var(--accent-bg);
-  padding: 1px 6px;
-  border-radius: 3px;
-}
-.card-size {
-  font-size: 11px;
-  color: var(--tx-3);
-}
-.card-actions {
-  display: flex;
-  gap: 4px;
-  padding: 0 12px 10px;
-}
-.card-actions .btn-icon { width: 28px; height: 28px; }
-.card-actions .btn-icon svg { width: 13px; height: 13px; }
-
-/* ── Empty State ── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60vh;
-  color: var(--tx-3);
-  text-align: center;
-}
-.empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; color: var(--bg-3); }
-.empty-state h2 { font-size: 18px; color: var(--tx-2); margin-bottom: 8px; }
-.empty-state p { font-size: 13px; max-width: 360px; line-height: 1.5; margin-bottom: 20px; }
-
-/* ── Viewer ── */
-.viewer {
-  position: absolute;
-  inset: 0;
-  background: var(--bg-0);
-  display: none;
-  flex-direction: column;
-}
-.viewer.active { display: flex; }
-.viewer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--bg-1);
-  border-bottom: 1px solid var(--border);
-  z-index: 2;
-}
-.viewer-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--tx-1);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.viewer-title .badge {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 600;
-  background: var(--accent-bg);
-  padding: 1px 6px;
-  border-radius: 3px;
-}
-.viewer-actions { display: flex; gap: 6px; }
-.viewer-canvas {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-.viewer-canvas canvas { display: block; }
-.viewer-info {
-  padding: 6px 16px;
-  background: var(--bg-1);
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--tx-3);
-  z-index: 2;
-}
-
-/* ── Drag overlay ── */
-.drop-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(9, 9, 11, 0.85);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  pointer-events: none;
-}
-.drop-overlay.active { display: flex; }
-.drop-box {
-  border: 2px dashed var(--accent);
-  border-radius: 16px;
-  padding: 48px 64px;
-  text-align: center;
-  color: var(--accent);
-}
-.drop-box svg { width: 48px; height: 48px; margin-bottom: 12px; }
-.drop-box p { font-size: 15px; font-weight: 600; }
-.drop-box span { font-size: 12px; color: var(--tx-3); display: block; margin-top: 4px; }
-
-/* ── Modal ── */
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-.modal-bg.active { display: flex; }
-.modal {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 90%;
-  max-width: 380px;
-}
-.modal h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--tx-1);
-  margin-bottom: 16px;
-}
-.modal input {
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--bg-3);
-  border-radius: 6px;
-  color: var(--tx-1);
-  font-size: 14px;
-  outline: none;
-  margin-bottom: 16px;
-}
-.modal input:focus { border-color: var(--accent); }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-
-/* ── Loading ── */
-.loading-spinner {
-  border: 3px solid var(--bg-3);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(9,9,11,.7);
-  z-index: 5;
-}
-
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .header { padding: 10px 14px; }
-  .library { padding: 14px; }
-}
-</style>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    canvas { display: block; outline: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .anim-spin { animation: spin 1s linear infinite; }
+    @keyframes toast-in {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+    .toast-enter { animation: toast-in 0.3s ease-out forwards; }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(245,158,11,0.3); }
+      50%      { border-color: rgba(245,158,11,0.7); }
+    }
+    .drag-pulse { animation: pulse-border 1s ease-in-out infinite; }
+    /* Toggle switch styles */
+    .toggle-track { transition: background-color 0.2s; }
+    .toggle-dot   { transition: left 0.2s; }
+    input:checked ~ .toggle-track { background-color: #f59e0b; }
+    input:checked ~ .toggle-dot   { left: 14px; }
+  </style>
 </head>
-<body>
 
-<div class="app">
-  <div class="header">
-    <h1>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-      3D Model Library
-    </h1>
-    <div class="header-actions">
-      <span id="model-count" class="library-info" style="margin:0"></span>
-      <button class="btn btn-primary" id="btn-upload" title="Upload model">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload
-      </button>
-    </div>
-  </div>
+<body class="bg-zinc-950 text-zinc-100 font-sans overflow-hidden select-none">
 
-  <div class="content">
-    <!-- Library Grid -->
-    <div class="library" id="library-view">
-      <div class="grid" id="model-grid"></div>
-      <div class="empty-state" id="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        <h2>No models yet</h2>
-        <p>Upload STL, 3MF, AMF, or G-code files to build your library. Drag and drop or click Upload.</p>
-        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload your first model
+  <!-- ===== HEADER ===== -->
+  <header class="sticky top-0 z-40 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800">
+    <div class="px-4 py-2.5 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex gap-1.5 flex-shrink-0">
+          <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+          <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+        </div>
+        <h1 class="font-mono font-bold text-amber-500 text-sm truncate">3D Model Viewer</h1>
+        <span id="file-badge" class="hidden text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-mono truncate max-w-[200px]"></span>
+      </div>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button id="btn-open" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Open
         </button>
+        <input type="file" id="file-input" class="hidden" accept=".stl,.3mf">
+        <button id="btn-screenshot" class="text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot (S)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button id="btn-panel" class="text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Toggle panel (P)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        </button>
+        <button id="btn-install" class="hidden bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors">Install</button>
       </div>
     </div>
+  </header>
 
-    <!-- 3D Viewer -->
-    <div class="viewer" id="viewer-panel">
-      <div class="viewer-header">
-        <div class="viewer-title">
-          <span id="viewer-name">Model</span>
-          <span class="badge" id="viewer-ext">STL</span>
-        </div>
-        <div class="viewer-actions">
-          <button class="btn btn-secondary" id="btn-viewer-export" title="Export as 3MF">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export 3MF
-          </button>
-          <button class="btn-icon" id="btn-viewer-rename" title="Rename">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="btn-icon" id="btn-viewer-delete" title="Delete">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-          <button class="btn btn-secondary" id="btn-viewer-close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Close
-          </button>
+  <!-- ===== MAIN ===== -->
+  <main class="flex" style="height:calc(100vh - 45px)">
+
+    <!-- Viewport -->
+    <div id="viewport" class="flex-1 relative bg-zinc-950 overflow-hidden">
+
+      <!-- Empty state -->
+      <div id="empty-state" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
+        <div class="text-center p-8">
+          <svg class="w-16 h-16 mx-auto text-zinc-700 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <p class="font-mono text-zinc-500 text-sm mb-1">Drop STL or 3MF file here</p>
+          <p class="text-xs text-zinc-600">or click <span class="text-amber-500/70 font-mono">Open</span> to browse</p>
         </div>
       </div>
-      <div class="viewer-canvas" id="viewer-canvas">
-        <div class="loading-overlay" id="viewer-loading">
-          <div class="loading-spinner"></div>
+
+      <!-- Drag overlay -->
+      <div id="drag-overlay" class="absolute inset-4 hidden items-center justify-center bg-zinc-950/90 backdrop-blur-sm border-2 border-dashed border-amber-500/50 rounded-xl z-20 drag-pulse">
+        <div class="text-center">
+          <svg class="w-10 h-10 mx-auto text-amber-500 mb-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <p class="font-mono text-amber-400 text-sm">Drop to load model</p>
         </div>
       </div>
-      <div class="viewer-info" id="viewer-info"></div>
-    </div>
-  </div>
-</div>
 
-<!-- Drag & Drop overlay -->
-<div class="drop-overlay" id="drop-overlay">
-  <div class="drop-box">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    <p>Drop model files here</p>
-    <span>STL, 3MF, AMF, G-code</span>
-  </div>
-</div>
-
-<!-- Rename Modal -->
-<div class="modal-bg" id="rename-modal">
-  <div class="modal">
-    <h3>Rename Model</h3>
-    <input type="text" id="rename-input" placeholder="Model name" autocomplete="off">
-    <div class="modal-actions">
-      <button class="btn btn-secondary" id="rename-cancel">Cancel</button>
-      <button class="btn btn-primary" id="rename-save">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Hidden file input -->
-<input type="file" id="file-input" multiple accept=".stl,.3mf,.amf,.gcode,.obj" style="display:none">
-
-<!-- Three.js via importmap -->
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "threejs-exporter-pc": "https://cdn.jsdelivr.net/npm/threejs-exporter-pc@1.0.2/index.mjs"
-  }
-}
-</script>
-
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
-import { AMFLoader } from 'three/addons/loaders/AMFLoader.js';
-import { GCodeLoader } from 'three/addons/loaders/GCodeLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { exportTo3MF } from 'threejs-exporter-pc';
-
-// ── IndexedDB for model storage ──
-const DB_NAME = 'ModelLibrary';
-const DB_VERSION = 1;
-const STORE = 'models';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbGetAll() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const store = tx.objectStore(STORE);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbPut(item) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    const store = tx.objectStore(STORE);
-    const req = store.put(item);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbDelete(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    const store = tx.objectStore(STORE);
-    const req = store.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-// ── Three.js Loaders ──
-const LOADERS = {
-  stl:  () => new STLLoader(),
-  '3mf': () => new ThreeMFLoader(),
-  amf:  () => new AMFLoader(),
-  gcode: () => new GCodeLoader(),
-  obj:  () => new OBJLoader(),
-};
-
-const SUPPORTED_EXT = Object.keys(LOADERS);
-
-function getExt(filename) {
-  const parts = filename.toLowerCase().split('.');
-  let ext = parts.pop();
-  if (ext === 'zip' && parts.length) ext = parts.pop();
-  return ext;
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
-// ── Parse model data into a Three.js object ──
-function parseModel(ext, arrayBuffer) {
-  const loader = LOADERS[ext]?.();
-  if (!loader) throw new Error('Unsupported format: ' + ext);
-
-  let object;
-  if (ext === 'stl') {
-    const geometry = loader.parse(arrayBuffer);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      metalness: 0.2,
-      roughness: 0.6,
-    });
-    object = new THREE.Mesh(geometry, material);
-  } else if (ext === 'gcode') {
-    const text = new TextDecoder().decode(arrayBuffer);
-    object = loader.parse(text);
-    object.rotation.x = -Math.PI / 2;
-  } else {
-    object = loader.parse(arrayBuffer);
-  }
-  return object;
-}
-
-// ── Setup a Three.js scene for rendering ──
-function createScene() {
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x09090b);
-
-  // Lighting
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambient);
-  const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
-  dir1.position.set(5, 10, 7);
-  scene.add(dir1);
-  const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
-  dir2.position.set(-5, -3, -5);
-  scene.add(dir2);
-
-  return scene;
-}
-
-function fitCameraToObject(camera, object, controls) {
-  const box = new THREE.Box3().setFromObject(object);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const fov = camera.fov * (Math.PI / 180);
-  let distance = maxDim / (2 * Math.tan(fov / 2));
-  distance *= 1.6;
-
-  camera.position.set(
-    center.x + distance * 0.5,
-    center.y + distance * 0.7,
-    center.z + distance
-  );
-  camera.near = distance / 100;
-  camera.far = distance * 100;
-  camera.updateProjectionMatrix();
-
-  if (controls) {
-    controls.target.copy(center);
-    controls.update();
-  }
-
-  return { center, size, maxDim };
-}
-
-// ── Grid helper ──
-function addGrid(scene, size) {
-  const maxDim = Math.max(size.x, size.y, size.z);
-  let gridSize = 10;
-  let divisions = 10;
-  if (maxDim > 50) { gridSize = Math.ceil(maxDim / 10) * 10 * 2; divisions = 20; }
-  else if (maxDim > 10) { gridSize = 100; divisions = 10; }
-  const grid = new THREE.GridHelper(gridSize, divisions, 0x3f3f46, 0x27272a);
-  scene.add(grid);
-}
-
-// ── Thumbnail Renderer ──
-let thumbRenderer = null;
-
-function renderThumbnail(arrayBuffer, ext) {
-  return new Promise((resolve) => {
-    try {
-      const object = parseModel(ext, arrayBuffer);
-
-      if (!thumbRenderer) {
-        thumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      }
-      thumbRenderer.setSize(400, 300);
-      thumbRenderer.setPixelRatio(1);
-
-      const scene = createScene();
-      scene.add(object);
-
-      const camera = new THREE.PerspectiveCamera(45, 400 / 300, 0.1, 10000);
-      fitCameraToObject(camera, object, null);
-      thumbRenderer.render(scene, camera);
-
-      resolve(thumbRenderer.domElement.toDataURL('image/png'));
-
-      // Cleanup
-      scene.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-          else child.material.dispose();
-        }
-      });
-    } catch (e) {
-      console.warn('Thumbnail failed:', e);
-      resolve(null);
-    }
-  });
-}
-
-// ── State ──
-let models = [];
-let currentViewerId = null;
-let viewerRenderer = null;
-let viewerControls = null;
-let viewerAnimId = null;
-
-// ── DOM refs ──
-const grid = document.getElementById('model-grid');
-const emptyState = document.getElementById('empty-state');
-const modelCount = document.getElementById('model-count');
-const fileInput = document.getElementById('file-input');
-const btnUpload = document.getElementById('btn-upload');
-const viewerPanel = document.getElementById('viewer-panel');
-const viewerCanvas = document.getElementById('viewer-canvas');
-const viewerName = document.getElementById('viewer-name');
-const viewerExt = document.getElementById('viewer-ext');
-const viewerInfo = document.getElementById('viewer-info');
-const viewerLoading = document.getElementById('viewer-loading');
-const btnViewerClose = document.getElementById('btn-viewer-close');
-const btnViewerExport = document.getElementById('btn-viewer-export');
-const btnViewerRename = document.getElementById('btn-viewer-rename');
-const btnViewerDelete = document.getElementById('btn-viewer-delete');
-const dropOverlay = document.getElementById('drop-overlay');
-const renameModal = document.getElementById('rename-modal');
-const renameInput = document.getElementById('rename-input');
-const renameCancel = document.getElementById('rename-cancel');
-const renameSave = document.getElementById('rename-save');
-
-// ── Render Library ──
-function renderLibrary() {
-  const count = models.length;
-  modelCount.textContent = count ? `${count} model${count !== 1 ? 's' : ''}` : '';
-  emptyState.style.display = count ? 'none' : 'flex';
-  grid.style.display = count ? 'grid' : 'none';
-
-  grid.innerHTML = '';
-  // Sort by date added (newest first)
-  const sorted = [...models].sort((a, b) => b.addedAt - a.addedAt);
-
-  for (const m of sorted) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="card-thumb">
-        ${m.thumbnail
-          ? `<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:contain" alt="${m.name}">`
-          : `<div class="placeholder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>`
-        }
-      </div>
-      <div class="card-body">
-        <div class="card-name" title="${m.name}">${m.name}</div>
-        <div class="card-meta">
-          <span class="card-ext">${m.ext}</span>
-          <span class="card-size">${formatSize(m.size)}</span>
+      <!-- Loading overlay -->
+      <div id="loading-overlay" class="absolute inset-0 hidden items-center justify-center bg-zinc-950/80 backdrop-blur-sm z-20">
+        <div class="text-center">
+          <svg class="w-8 h-8 mx-auto text-amber-500 anim-spin mb-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M6.34 6.34L3.51 3.51"/>
+          </svg>
+          <p class="font-mono text-zinc-400 text-xs">Loading model…</p>
         </div>
       </div>
-      <div class="card-actions">
-        <button class="btn-icon" data-action="export" data-id="${m.id}" title="Export as 3MF">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </button>
-        <button class="btn-icon" data-action="rename" data-id="${m.id}" title="Rename">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="btn-icon" data-action="delete" data-id="${m.id}" title="Delete">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+
+      <!-- FPS overlay -->
+      <div id="fps-overlay" class="absolute bottom-2 left-3 text-[10px] font-mono text-zinc-700"></div>
+
+      <!-- Controls hint -->
+      <div id="controls-hint" class="absolute bottom-2 right-3 text-[10px] font-mono text-zinc-700 hidden">
+        LMB Rotate · RMB Pan · Scroll Zoom
       </div>
-    `;
+    </div>
 
-    // Click card to open viewer
-    card.querySelector('.card-thumb').addEventListener('click', () => openViewer(m.id));
-    card.querySelector('.card-body').addEventListener('click', () => openViewer(m.id));
+    <!-- ===== SIDE PANEL ===== -->
+    <aside id="panel" class="w-[268px] border-l border-zinc-800 bg-zinc-900 overflow-y-auto flex-shrink-0">
+      <div class="p-4 space-y-4">
 
-    // Action buttons
-    card.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const action = btn.dataset.action;
-        const id = btn.dataset.id;
-        if (action === 'rename') showRenameModal(id);
-        else if (action === 'delete') deleteModel(id);
-        else if (action === 'export') exportModel(id);
-      });
-    });
+        <!-- Model Info -->
+        <section>
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2.5">Model Info</h3>
+          <div id="model-info" class="space-y-1.5 text-xs font-mono">
+            <p class="text-zinc-600 italic">No model loaded</p>
+          </div>
+        </section>
 
-    grid.appendChild(card);
-  }
-}
+        <hr class="border-zinc-800">
 
-// ── Upload Files ──
-async function handleFiles(fileList) {
-  for (const file of fileList) {
-    const ext = getExt(file.name);
-    if (!SUPPORTED_EXT.includes(ext)) {
-      console.warn('Unsupported file:', file.name);
-      continue;
+        <!-- View Controls -->
+        <section>
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2.5">View</h3>
+          <div class="space-y-2">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-xs text-zinc-300">Grid</span>
+              <div class="relative w-8 h-[18px]">
+                <input type="checkbox" id="chk-grid" class="sr-only" checked>
+                <div class="toggle-track w-8 h-[18px] rounded-full bg-zinc-700 absolute inset-0"></div>
+                <div class="toggle-dot w-3.5 h-3.5 rounded-full bg-white absolute top-[2px] left-[2px]"></div>
+              </div>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-xs text-zinc-300">Axes</span>
+              <div class="relative w-8 h-[18px]">
+                <input type="checkbox" id="chk-axes" class="sr-only" checked>
+                <div class="toggle-track w-8 h-[18px] rounded-full bg-zinc-700 absolute inset-0"></div>
+                <div class="toggle-dot w-3.5 h-3.5 rounded-full bg-white absolute top-[2px] left-[2px]"></div>
+              </div>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-xs text-zinc-300">Wireframe</span>
+              <div class="relative w-8 h-[18px]">
+                <input type="checkbox" id="chk-wire" class="sr-only">
+                <div class="toggle-track w-8 h-[18px] rounded-full bg-zinc-700 absolute inset-0"></div>
+                <div class="toggle-dot w-3.5 h-3.5 rounded-full bg-white absolute top-[2px] left-[2px]"></div>
+              </div>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-xs text-zinc-300">Auto-rotate</span>
+              <div class="relative w-8 h-[18px]">
+                <input type="checkbox" id="chk-rotate" class="sr-only">
+                <div class="toggle-track w-8 h-[18px] rounded-full bg-zinc-700 absolute inset-0"></div>
+                <div class="toggle-dot w-3.5 h-3.5 rounded-full bg-white absolute top-[2px] left-[2px]"></div>
+              </div>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-xs text-zinc-300">Flat shading</span>
+              <div class="relative w-8 h-[18px]">
+                <input type="checkbox" id="chk-flat" class="sr-only">
+                <div class="toggle-track w-8 h-[18px] rounded-full bg-zinc-700 absolute inset-0"></div>
+                <div class="toggle-dot w-3.5 h-3.5 rounded-full bg-white absolute top-[2px] left-[2px]"></div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <hr class="border-zinc-800">
+
+        <!-- Material -->
+        <section>
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2.5">Material</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Color</label>
+              <div class="flex gap-1.5 flex-wrap">
+                <button data-color="#a0a0a8" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#a0a0a8" title="Gray"></button>
+                <button data-color="#f59e0b" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#f59e0b" title="Amber"></button>
+                <button data-color="#3b82f6" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#3b82f6" title="Blue"></button>
+                <button data-color="#22c55e" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#22c55e" title="Green"></button>
+                <button data-color="#ef4444" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#ef4444" title="Red"></button>
+                <button data-color="#ffffff" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#ffffff" title="White"></button>
+                <button data-color="#1a1a2e" class="clr-btn w-6 h-6 rounded border-2 border-zinc-700 hover:border-amber-500 transition-colors" style="background:#1a1a2e" title="Dark"></button>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1"><label class="text-[10px] text-zinc-500 font-mono">Roughness</label><span id="val-rough" class="text-[10px] text-zinc-600 font-mono">0.50</span></div>
+              <input type="range" id="sld-rough" min="0" max="100" value="50" class="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            </div>
+            <div>
+              <div class="flex justify-between mb-1"><label class="text-[10px] text-zinc-500 font-mono">Metalness</label><span id="val-metal" class="text-[10px] text-zinc-600 font-mono">0.15</span></div>
+              <input type="range" id="sld-metal" min="0" max="100" value="15" class="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            </div>
+          </div>
+        </section>
+
+        <hr class="border-zinc-800">
+
+        <!-- Actions -->
+        <section class="space-y-1.5">
+          <button id="btn-reset" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Reset View
+          </button>
+          <button id="btn-fit" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Fit to View
+          </button>
+        </section>
+
+        <hr class="border-zinc-800">
+
+        <!-- Shortcuts -->
+        <section>
+          <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Shortcuts</h3>
+          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] font-mono">
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">R</kbd><span class="text-zinc-500">Reset view</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">F</kbd><span class="text-zinc-500">Fit to view</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">W</kbd><span class="text-zinc-500">Wireframe</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">G</kbd><span class="text-zinc-500">Grid</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">A</kbd><span class="text-zinc-500">Axes</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">⎵</kbd><span class="text-zinc-500">Auto-rotate</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">S</kbd><span class="text-zinc-500">Screenshot</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">P</kbd><span class="text-zinc-500">Panel</span>
+          </div>
+        </section>
+
+      </div>
+    </aside>
+  </main>
+
+  <!-- Toast container -->
+  <div id="toasts" class="fixed top-14 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ===== THREE.JS APP ===== -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
+    import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
+
+    /* ── state ── */
+    let scene, camera, renderer, controls;
+    let gridHelper, axesHelper;
+    let currentModel = null;
+    let modelMeshes  = [];
+    let defaultMat;
+    let frameCount = 0, lastFps = 0, fpsTime = 0;
+
+    /* ── DOM refs ── */
+    const $  = id => document.getElementById(id);
+    const viewport      = $('viewport');
+    const emptyState     = $('empty-state');
+    const dragOverlay    = $('drag-overlay');
+    const loadingOverlay = $('loading-overlay');
+    const fpsOverlay     = $('fps-overlay');
+    const controlsHint   = $('controls-hint');
+    const modelInfo      = $('model-info');
+    const fileBadge      = $('file-badge');
+    const panel          = $('panel');
+    const toastsEl       = $('toasts');
+
+    const fileInput  = $('file-input');
+    const chkGrid    = $('chk-grid');
+    const chkAxes    = $('chk-axes');
+    const chkWire    = $('chk-wire');
+    const chkRotate  = $('chk-rotate');
+    const chkFlat    = $('chk-flat');
+    const sldRough   = $('sld-rough');
+    const sldMetal   = $('sld-metal');
+
+    /* ── helpers ── */
+    function toast(msg, type = 'info', ms = 3000) {
+      const c = { info: 'border-amber-500/50', error: 'border-red-500/50', success: 'border-green-500/50' };
+      const el = document.createElement('div');
+      el.className = `toast-enter ${c[type]} border bg-zinc-900 rounded-lg px-4 py-2 text-xs font-mono text-zinc-300 shadow-lg max-w-xs`;
+      el.textContent = msg;
+      toastsEl.appendChild(el);
+      setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, ms);
     }
 
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const thumbnail = await renderThumbnail(arrayBuffer, ext);
-      const baseName = file.name.replace(/\.[^.]+$/, '');
+    function fmtSize(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(1) + ' MB';
+    }
 
-      const model = {
-        id: generateId(),
-        name: baseName,
-        ext,
-        size: file.size,
-        data: arrayBuffer,
-        thumbnail,
-        addedAt: Date.now(),
+    function showLoading(v) {
+      loadingOverlay.classList.toggle('hidden', !v);
+      loadingOverlay.classList.toggle('flex', v);
+    }
+
+    /* ── scene setup ── */
+    function initScene() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x09090b);
+
+      camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.01, 10000);
+      camera.position.set(5, 4, 5);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+      renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      viewport.insertBefore(renderer.domElement, viewport.firstChild);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 0.01;
+      controls.maxDistance = 5000;
+
+      // lights
+      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      const d1 = new THREE.DirectionalLight(0xffffff, 0.9);
+      d1.position.set(5, 8, 5);
+      d1.castShadow = true;
+      d1.shadow.mapSize.set(2048, 2048);
+      scene.add(d1);
+      const d2 = new THREE.DirectionalLight(0xffffff, 0.35);
+      d2.position.set(-4, 3, -6);
+      scene.add(d2);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.25));
+
+      // grid
+      gridHelper = new THREE.GridHelper(100, 100, 0x3f3f46, 0x222228);
+      scene.add(gridHelper);
+
+      // axes
+      axesHelper = new THREE.AxesHelper(3);
+      scene.add(axesHelper);
+
+      // default material
+      defaultMat = new THREE.MeshStandardMaterial({
+        color: 0xa0a0a8,
+        roughness: 0.5,
+        metalness: 0.15,
+        flatShading: false,
+        side: THREE.DoubleSide
+      });
+    }
+
+    /* ── file handling ── */
+    function handleFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['stl', '3mf'].includes(ext)) { toast('Unsupported format — use .stl or .3mf', 'error'); return; }
+      showLoading(true);
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          if (ext === 'stl') loadSTL(e.target.result, file);
+          else load3MF(e.target.result, file);
+        } catch (err) {
+          console.error(err);
+          toast('Parse error: ' + err.message, 'error', 5000);
+          showLoading(false);
+        }
       };
-
-      await dbPut(model);
-      models.push(model);
-    } catch (err) {
-      console.error('Failed to process file:', file.name, err);
+      reader.onerror = () => { toast('Failed to read file', 'error'); showLoading(false); };
+      reader.readAsArrayBuffer(file);
     }
-  }
-  renderLibrary();
-}
 
-// ── Delete ──
-async function deleteModel(id) {
-  if (!confirm('Delete this model?')) return;
-  await dbDelete(id);
-  models = models.filter(m => m.id !== id);
-  if (currentViewerId === id) closeViewer();
-  renderLibrary();
-}
+    function loadSTL(buf, file) {
+      const geom = new STLLoader().parse(buf);
+      if (!geom.attributes.normal) geom.computeVertexNormals();
 
-// ── Export as 3MF ──
-async function exportModel(id) {
-  const m = models.find(m => m.id === id);
-  if (!m) return;
+      clearModel();
+      const mesh = new THREE.Mesh(geom, defaultMat.clone());
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
 
-  try {
-    const object = parseModel(m.ext, m.data);
-    const blob = await exportTo3MF(object);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = (m.name || 'model') + '.3mf';
-    link.click();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    console.error('Export failed:', e);
-    alert('Export failed: ' + e.message);
-  }
-}
+      const group = new THREE.Group();
+      group.add(mesh);
+      currentModel = group;
+      modelMeshes = [mesh];
+      scene.add(currentModel);
 
-// ── Rename ──
-let renameTargetId = null;
-function showRenameModal(id) {
-  renameTargetId = id;
-  const m = models.find(m => m.id === id);
-  if (!m) return;
-  renameInput.value = m.name;
-  renameModal.classList.add('active');
-  renameInput.focus();
-  renameInput.select();
-}
+      fitToView();
+      updateInfoSTL(file, geom);
+      onModelLoaded(file);
+    }
 
-async function doRename() {
-  const newName = renameInput.value.trim();
-  if (!newName || !renameTargetId) return;
-  const m = models.find(m => m.id === renameTargetId);
-  if (!m) return;
-  m.name = newName;
-  await dbPut(m);
-  renameModal.classList.remove('active');
-  renameTargetId = null;
-  renderLibrary();
-  if (currentViewerId === m.id) viewerName.textContent = newName;
-}
+    function load3MF(buf, file) {
+      const loader = new ThreeMFLoader();
+      let object;
+      try { object = loader.parse(buf); }
+      catch (err) {
+        console.error('3MF parse error:', err);
+        toast('Could not parse 3MF — ' + err.message, 'error', 5000);
+        showLoading(false);
+        return;
+      }
 
-// ── Viewer ──
-function openViewer(id) {
-  const m = models.find(m => m.id === id);
-  if (!m) return;
-  currentViewerId = id;
-  viewerName.textContent = m.name;
-  viewerExt.textContent = m.ext.toUpperCase();
-  viewerLoading.style.display = 'flex';
-  viewerInfo.textContent = '';
-  viewerPanel.classList.add('active');
+      clearModel();
+      currentModel = object;
+      modelMeshes = [];
+      let totalVerts = 0, totalTris = 0;
 
-  // Clean up previous
-  disposeViewer();
-
-  requestAnimationFrame(() => {
-    try {
-      const object = parseModel(m.ext, m.data);
-      const scene = createScene();
-
-      // Grid
-      const tmpBox = new THREE.Box3().setFromObject(object);
-      addGrid(scene, tmpBox.getSize(new THREE.Vector3()));
-
-      scene.add(object);
-
-      const w = viewerCanvas.clientWidth;
-      const h = viewerCanvas.clientHeight;
-      const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 100000);
-
-      viewerRenderer = new THREE.WebGLRenderer({ antialias: true });
-      viewerRenderer.setSize(w, h);
-      viewerRenderer.setPixelRatio(window.devicePixelRatio);
-      viewerRenderer.setClearColor(0x09090b);
-      viewerCanvas.appendChild(viewerRenderer.domElement);
-
-      viewerControls = new OrbitControls(camera, viewerRenderer.domElement);
-      viewerControls.enableDamping = true;
-      viewerControls.dampingFactor = 0.1;
-
-      const info = fitCameraToObject(camera, object, viewerControls);
-
-      // Info bar
-      const box = new THREE.Box3().setFromObject(object);
-      const sz = box.getSize(new THREE.Vector3());
-      let triCount = 0;
       object.traverse(child => {
-        if (child.geometry) {
-          const idx = child.geometry.index;
-          triCount += idx ? idx.count / 3 : (child.geometry.attributes.position?.count || 0) / 3;
+        if (!child.isMesh) return;
+        modelMeshes.push(child);
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        // apply default material if the mesh has none or plain white
+        const mat = child.material;
+        const isPlain = mat && !Array.isArray(mat) && mat.isMeshPhongMaterial && mat.color.getHex() === 0xffffff;
+        if (!mat || isPlain) child.material = defaultMat.clone();
+        if (Array.isArray(mat)) mat.forEach(m => { m.side = THREE.DoubleSide; });
+        else if (child.material) child.material.side = THREE.DoubleSide;
+
+        const g = child.geometry;
+        if (g) {
+          if (!g.attributes.normal) g.computeVertexNormals();
+          if (g.attributes.position) totalVerts += g.attributes.position.count;
+          totalTris += g.index ? g.index.count / 3 : (g.attributes.position?.count || 0) / 3;
         }
       });
-      viewerInfo.textContent = `Size: ${sz.x.toFixed(1)} x ${sz.y.toFixed(1)} x ${sz.z.toFixed(1)} mm | Triangles: ${Math.round(triCount).toLocaleString()} | File: ${formatSize(m.size)}`;
 
-      viewerLoading.style.display = 'none';
+      scene.add(currentModel);
+      fitToView();
+      updateInfo3MF(file, totalVerts, totalTris, modelMeshes.length);
+      onModelLoaded(file);
+    }
 
-      function animate() {
-        viewerAnimId = requestAnimationFrame(animate);
-        viewerControls.update();
-        viewerRenderer.render(scene, camera);
+    function onModelLoaded(file) {
+      showLoading(false);
+      emptyState.classList.add('hidden');
+      controlsHint.classList.remove('hidden');
+      fileBadge.textContent = file.name;
+      fileBadge.classList.remove('hidden');
+      // sync material UI state
+      applyCurrentMaterialSettings();
+      toast('Loaded ' + file.name, 'success');
+    }
+
+    function clearModel() {
+      if (!currentModel) return;
+      scene.remove(currentModel);
+      currentModel.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          (Array.isArray(c.material) ? c.material : [c.material]).forEach(m => m.dispose());
+        }
+      });
+      currentModel = null;
+      modelMeshes = [];
+    }
+
+    /* ── model processing ── */
+    function fitToView() {
+      if (!currentModel) return;
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+      // center & sit on grid
+      currentModel.position.sub(center);
+      currentModel.position.y += size.y / 2;
+
+      const fov = camera.fov * Math.PI / 180;
+      const dist = maxDim / (2 * Math.tan(fov / 2)) * 2.0;
+
+      camera.position.set(dist * 0.7, dist * 0.5, dist * 0.7);
+      controls.target.set(0, size.y * 0.3, 0);
+      camera.near = dist * 0.0005;
+      camera.far  = dist * 100;
+      camera.updateProjectionMatrix();
+      controls.update();
+
+      // rebuild grid
+      const gs = Math.max(maxDim * 4, 10);
+      scene.remove(gridHelper);
+      gridHelper = new THREE.GridHelper(gs, Math.min(Math.round(gs), 200), 0x3f3f46, 0x222228);
+      gridHelper.visible = chkGrid.checked;
+      scene.add(gridHelper);
+
+      scene.remove(axesHelper);
+      axesHelper = new THREE.AxesHelper(maxDim * 0.4);
+      axesHelper.visible = chkAxes.checked;
+      scene.add(axesHelper);
+    }
+
+    /* ── info panels ── */
+    function infoRow(label, value) {
+      return `<div class="flex justify-between gap-2"><span class="text-zinc-500 shrink-0">${label}</span><span class="text-zinc-300 text-right truncate">${value}</span></div>`;
+    }
+
+    function updateInfoSTL(file, geom) {
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const s = box.getSize(new THREE.Vector3());
+      const verts = geom.attributes.position.count;
+      const tris = geom.index ? geom.index.count / 3 : verts / 3;
+      const vol = calcVolume(geom);
+
+      modelInfo.innerHTML = `<div class="space-y-1.5">
+        ${infoRow('File', file.name)}
+        ${infoRow('Size', fmtSize(file.size))}
+        ${infoRow('Format', '<span class="text-xs px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded">STL</span>')}
+        <hr class="border-zinc-800 !my-2">
+        ${infoRow('Dimensions', `${s.x.toFixed(2)} × ${s.y.toFixed(2)} × ${s.z.toFixed(2)}`)}
+        ${infoRow('Vertices', verts.toLocaleString())}
+        ${infoRow('Triangles', Math.round(tris).toLocaleString())}
+        ${vol !== null ? infoRow('Volume', vol.toFixed(1) + ' u³') : ''}
+      </div>`;
+    }
+
+    function updateInfo3MF(file, verts, tris, parts) {
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const s = box.getSize(new THREE.Vector3());
+      modelInfo.innerHTML = `<div class="space-y-1.5">
+        ${infoRow('File', file.name)}
+        ${infoRow('Size', fmtSize(file.size))}
+        ${infoRow('Format', '<span class="text-xs px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded">3MF</span>')}
+        ${infoRow('Parts', parts.toString())}
+        <hr class="border-zinc-800 !my-2">
+        ${infoRow('Dimensions', `${s.x.toFixed(2)} × ${s.y.toFixed(2)} × ${s.z.toFixed(2)}`)}
+        ${infoRow('Vertices', verts.toLocaleString())}
+        ${infoRow('Triangles', Math.round(tris).toLocaleString())}
+      </div>`;
+    }
+
+    function calcVolume(geom) {
+      try {
+        const pos = geom.attributes.position;
+        const idx = geom.index;
+        let vol = 0;
+        const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), cross = new THREE.Vector3();
+        const count = idx ? idx.count : pos.count;
+        for (let i = 0; i < count; i += 3) {
+          const i0 = idx ? idx.getX(i) : i, i1 = idx ? idx.getX(i+1) : i+1, i2 = idx ? idx.getX(i+2) : i+2;
+          a.fromBufferAttribute(pos, i0);
+          b.fromBufferAttribute(pos, i1);
+          c.fromBufferAttribute(pos, i2);
+          cross.crossVectors(b, c);
+          vol += a.dot(cross) / 6;
+        }
+        return Math.abs(vol);
+      } catch { return null; }
+    }
+
+    /* ── material controls ── */
+    function forEachMat(fn) {
+      modelMeshes.forEach(m => {
+        (Array.isArray(m.material) ? m.material : [m.material]).forEach(fn);
+      });
+    }
+
+    function applyCurrentMaterialSettings() {
+      forEachMat(m => {
+        m.wireframe = chkWire.checked;
+        m.flatShading = chkFlat.checked;
+        m.needsUpdate = true;
+      });
+    }
+
+    /* ── event wiring ── */
+    // file open
+    $('btn-open').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) { handleFile(fileInput.files[0]); fileInput.value = ''; } });
+
+    // drag & drop
+    let dragN = 0;
+    document.addEventListener('dragover', e => e.preventDefault());
+    document.addEventListener('drop', e => e.preventDefault());
+    viewport.addEventListener('dragenter', e => { e.preventDefault(); dragN++; dragOverlay.classList.remove('hidden'); dragOverlay.classList.add('flex'); });
+    viewport.addEventListener('dragover',  e => e.preventDefault());
+    viewport.addEventListener('dragleave', e => { e.preventDefault(); if (--dragN <= 0) { dragN = 0; dragOverlay.classList.add('hidden'); dragOverlay.classList.remove('flex'); } });
+    viewport.addEventListener('drop', e => {
+      e.preventDefault(); dragN = 0;
+      dragOverlay.classList.add('hidden'); dragOverlay.classList.remove('flex');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    // toggles
+    chkGrid.addEventListener('change',   () => { gridHelper.visible = chkGrid.checked; });
+    chkAxes.addEventListener('change',   () => { axesHelper.visible = chkAxes.checked; });
+    chkWire.addEventListener('change',   () => forEachMat(m => { m.wireframe = chkWire.checked; }));
+    chkRotate.addEventListener('change', () => { controls.autoRotate = chkRotate.checked; controls.autoRotateSpeed = 2; });
+    chkFlat.addEventListener('change',   () => forEachMat(m => { m.flatShading = chkFlat.checked; m.needsUpdate = true; }));
+
+    // color swatches
+    document.querySelectorAll('.clr-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.clr-btn').forEach(b => b.classList.replace('border-amber-500', 'border-zinc-700'));
+        btn.classList.replace('border-zinc-700', 'border-amber-500');
+        const col = new THREE.Color(btn.dataset.color);
+        forEachMat(m => { m.color.copy(col); });
+      });
+    });
+    // select first swatch
+    document.querySelector('.clr-btn')?.classList.replace('border-zinc-700', 'border-amber-500');
+
+    // sliders
+    sldRough.addEventListener('input', () => { const v = sldRough.value / 100; $('val-rough').textContent = v.toFixed(2); forEachMat(m => { if (m.roughness !== undefined) m.roughness = v; }); });
+    sldMetal.addEventListener('input', () => { const v = sldMetal.value / 100; $('val-metal').textContent = v.toFixed(2); forEachMat(m => { if (m.metalness !== undefined) m.metalness = v; }); });
+
+    // buttons
+    $('btn-reset').addEventListener('click', () => { camera.position.set(5, 4, 5); controls.target.set(0, 0, 0); controls.update(); if (currentModel) fitToView(); });
+    $('btn-fit').addEventListener('click', fitToView);
+
+    $('btn-screenshot').addEventListener('click', () => {
+      renderer.render(scene, camera);
+      const a = document.createElement('a');
+      a.href = renderer.domElement.toDataURL('image/png');
+      a.download = `model-${Date.now()}.png`;
+      a.click();
+      toast('Screenshot saved', 'success');
+    });
+
+    $('btn-panel').addEventListener('click', togglePanel);
+    function togglePanel() {
+      const hidden = panel.style.display === 'none';
+      panel.style.display = hidden ? '' : 'none';
+      onResize();
+    }
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'r') { $('btn-reset').click(); }
+      else if (k === 'f') { fitToView(); }
+      else if (k === 'w') { chkWire.checked = !chkWire.checked; chkWire.dispatchEvent(new Event('change')); }
+      else if (k === 'g') { chkGrid.checked = !chkGrid.checked; chkGrid.dispatchEvent(new Event('change')); }
+      else if (k === 'a') { chkAxes.checked = !chkAxes.checked; chkAxes.dispatchEvent(new Event('change')); }
+      else if (k === ' ') { e.preventDefault(); chkRotate.checked = !chkRotate.checked; chkRotate.dispatchEvent(new Event('change')); }
+      else if (k === 's' && !e.ctrlKey && !e.metaKey) { $('btn-screenshot').click(); }
+      else if (k === 'p') { togglePanel(); }
+    });
+
+    // resize
+    function onResize() {
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    window.addEventListener('resize', onResize);
+    new ResizeObserver(onResize).observe(viewport);
+
+    // PWA install
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault(); deferredPrompt = e;
+      $('btn-install').classList.remove('hidden');
+    });
+    $('btn-install').addEventListener('click', () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(r => {
+        if (r.outcome === 'accepted') toast('App installed!', 'success');
+        deferredPrompt = null;
+        $('btn-install').classList.add('hidden');
+      });
+    });
+
+    /* ── animation loop ── */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+      frameCount++;
+      const now = performance.now();
+      if (now - fpsTime >= 1000) {
+        lastFps = Math.round(frameCount * 1000 / (now - fpsTime));
+        fpsOverlay.textContent = lastFps + ' FPS';
+        frameCount = 0;
+        fpsTime = now;
       }
-      animate();
-
-      // Resize handler
-      const onResize = () => {
-        const w2 = viewerCanvas.clientWidth;
-        const h2 = viewerCanvas.clientHeight;
-        camera.aspect = w2 / h2;
-        camera.updateProjectionMatrix();
-        viewerRenderer.setSize(w2, h2);
-      };
-      window.addEventListener('resize', onResize);
-      viewerRenderer._onResize = onResize;
-
-    } catch (e) {
-      console.error('Viewer error:', e);
-      viewerLoading.style.display = 'none';
-      viewerInfo.textContent = 'Error loading model: ' + e.message;
     }
-  });
-}
 
-function disposeViewer() {
-  if (viewerAnimId) cancelAnimationFrame(viewerAnimId);
-  viewerAnimId = null;
-  if (viewerRenderer) {
-    if (viewerRenderer._onResize) window.removeEventListener('resize', viewerRenderer._onResize);
-    viewerRenderer.dispose();
-    if (viewerRenderer.domElement.parentNode) {
-      viewerRenderer.domElement.parentNode.removeChild(viewerRenderer.domElement);
+    /* ── init ── */
+    initScene();
+    animate();
+    if (window.innerWidth < 768) panel.style.display = 'none';
+
+    // handle PWA file handler launch
+    if ('launchQueue' in window) {
+      window.launchQueue.setConsumer(async launchParams => {
+        if (launchParams.files?.length) {
+          const fh = launchParams.files[0];
+          const file = await fh.getFile();
+          handleFile(file);
+        }
+      });
     }
-    viewerRenderer = null;
-  }
-  if (viewerControls) {
-    viewerControls.dispose();
-    viewerControls = null;
-  }
-}
+  </script>
 
-function closeViewer() {
-  disposeViewer();
-  currentViewerId = null;
-  viewerPanel.classList.remove('active');
-}
-
-// ── Event Listeners ──
-btnUpload.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', async (e) => {
-  if (e.target.files.length) {
-    await handleFiles(Array.from(e.target.files));
-  }
-  fileInput.value = '';
-});
-
-btnViewerClose.addEventListener('click', closeViewer);
-btnViewerExport.addEventListener('click', () => { if (currentViewerId) exportModel(currentViewerId); });
-btnViewerRename.addEventListener('click', () => { if (currentViewerId) showRenameModal(currentViewerId); });
-btnViewerDelete.addEventListener('click', () => { if (currentViewerId) deleteModel(currentViewerId); });
-
-renameCancel.addEventListener('click', () => { renameModal.classList.remove('active'); });
-renameSave.addEventListener('click', doRename);
-renameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRename(); if (e.key === 'Escape') renameModal.classList.remove('active'); });
-
-// Escape key to close viewer
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (renameModal.classList.contains('active')) renameModal.classList.remove('active');
-    else if (viewerPanel.classList.contains('active')) closeViewer();
-  }
-});
-
-// Drag and drop
-let dragCounter = 0;
-document.addEventListener('dragenter', (e) => {
-  e.preventDefault();
-  dragCounter++;
-  dropOverlay.classList.add('active');
-});
-document.addEventListener('dragleave', (e) => {
-  e.preventDefault();
-  dragCounter--;
-  if (dragCounter <= 0) {
-    dragCounter = 0;
-    dropOverlay.classList.remove('active');
-  }
-});
-document.addEventListener('dragover', (e) => e.preventDefault());
-document.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dragCounter = 0;
-  dropOverlay.classList.remove('active');
-  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
-});
-
-// ── Init ──
-(async () => {
-  try {
-    models = await dbGetAll();
-  } catch (e) {
-    console.error('DB error:', e);
-    models = [];
-  }
-  renderLibrary();
-})();
-</script>
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
