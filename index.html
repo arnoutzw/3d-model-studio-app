@@ -61,10 +61,28 @@
     })();
 
     // --- SSO Auth Receiver (listens for parent portfolio postMessage) ---
+    // Trusted origins that may embed this app and send SSO credentials
+    const TRUSTED_ORIGINS = [
+      'https://arnoutzw.github.io',
+      'https://arnout-s-homelab.firebaseapp.com',
+      'https://arnout-s-homelab.web.app',
+    ];
+    // Also allow same-origin (for local dev / direct access)
+    if (window.location.origin && !TRUSTED_ORIGINS.includes(window.location.origin)) {
+      TRUSTED_ORIGINS.push(window.location.origin);
+    }
+
     window.addEventListener('message', async (event) => {
+      // Validate origin — reject messages from untrusted sources
+      if (!TRUSTED_ORIGINS.includes(event.origin)) {
+        console.warn('Rejected postMessage from untrusted origin:', event.origin);
+        return;
+      }
+
       const data = event.data;
       if (!data || data.type !== 'admin-auth') return;
 
+      // isAdmin is for UI hints only — never trust it for security decisions
       window._isAdmin = !!data.isAdmin;
 
       if (data.sso && data.sso.idToken) {
