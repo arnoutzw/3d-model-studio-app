@@ -432,26 +432,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button id="btn-firebase-setup" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors flex items-center gap-1.5" title="Database settings">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              <span id="btn-firebase-label">Connect</span>
-            </button>
             <button id="btn-add-filament" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Filament
             </button>
-          </div>
-        </div>
-
-        <!-- Firebase setup banner (shown when not connected) -->
-        <div id="firebase-banner" class="hidden bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 mb-6">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <div>
-              <p class="text-xs font-mono text-amber-400 font-bold">Local mode — data is stored in this browser only</p>
-              <p class="text-[11px] font-mono text-zinc-500 mt-1">Connect a Firebase database to share inventory across all visitors in real time.</p>
-              <button id="btn-banner-setup" class="mt-2 text-[11px] font-mono text-amber-500 hover:text-amber-400 underline underline-offset-2 transition-colors">Set up Firebase</button>
-            </div>
           </div>
         </div>
 
@@ -691,59 +675,6 @@
       <div class="flex gap-2">
         <button id="btn-confirm-delete" class="flex-1 bg-red-500 hover:bg-red-400 text-white font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Delete</button>
         <button id="btn-cancel-delete" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== FIREBASE SETUP MODAL ===== -->
-  <div id="firebase-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-mono font-bold text-sm text-zinc-100">Firebase Database Setup</h3>
-          <button id="btn-fb-modal-close" class="text-zinc-500 hover:text-zinc-300 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Instructions -->
-          <div class="bg-zinc-800/50 rounded-lg p-3 text-[11px] font-mono text-zinc-400 space-y-1.5">
-            <p class="text-zinc-300 font-bold">Setup instructions:</p>
-            <ol class="list-decimal list-inside space-y-1">
-              <li>Go to <span class="text-amber-400">console.firebase.google.com</span></li>
-              <li>Create a new project (or select existing)</li>
-              <li>Go to <span class="text-amber-400">Build &gt; Firestore Database</span> &gt; Create database</li>
-              <li>Start in <span class="text-amber-400">test mode</span> (or configure rules later)</li>
-              <li>Go to <span class="text-amber-400">Build &gt; Authentication</span> &gt; Sign-in method &gt; Enable <span class="text-amber-400">Anonymous</span></li>
-              <li>Go to <span class="text-amber-400">Project settings</span> (gear icon) &gt; Your apps &gt; Web app</li>
-              <li>Copy the <span class="text-amber-400">firebaseConfig</span> object and paste below</li>
-            </ol>
-          </div>
-
-          <!-- Config input -->
-          <div>
-            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Firebase Config (JSON)</label>
-            <textarea id="fb-config-input" rows="8" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "your-project.firebaseapp.com",
-  "projectId": "your-project",
-  "storageBucket": "your-project.appspot.com",
-  "messagingSenderId": "123456789",
-  "appId": "1:123456789:web:abc123"
-}' class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 resize-none"></textarea>
-          </div>
-
-          <!-- Status message -->
-          <div id="fb-setup-status" class="hidden text-xs font-mono rounded-lg p-3"></div>
-
-          <!-- Buttons -->
-          <div class="flex gap-2">
-            <button id="btn-fb-connect" class="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Connect</button>
-            <button id="btn-fb-disconnect" class="hidden flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono px-4 py-2 rounded-lg text-xs transition-colors border border-red-500/20">Disconnect</button>
-            <button id="btn-fb-cancel" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -1451,7 +1382,6 @@
 
     /* ── State ── */
     const STORAGE_KEY = 'filament-inventory';
-    const FB_CONFIG_KEY = 'filament-firebase-config';
     let filaments = [];
     let activeFilter = 'all';
     let searchQuery = '';
@@ -1462,27 +1392,12 @@
     let ssoUser = window._ssoUser || null;
 
     /* ── SSO helpers ── */
-    function getFirebaseConfig() {
-      try {
-        const raw = localStorage.getItem(FB_CONFIG_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch { return null; }
-    }
-
     function filamentsCollection() {
       if (!db) return null;
       if (ssoUser) {
         return db.collection('users').doc(ssoUser.uid).collection('filaments');
       }
       return db.collection('filaments');
-    }
-
-    function modelsCollection() {
-      if (!db) return null;
-      if (ssoUser) {
-        return db.collection('users').doc(ssoUser.uid).collection('models');
-      }
-      return db.collection('models');
     }
 
     function updateSsoUserUI(user) {
@@ -1502,14 +1417,23 @@
     }
 
     // Listen for SSO user changes from parent portfolio
-    window.addEventListener('sso-user-changed', (e) => {
+    window.addEventListener('sso-user-changed', async (e) => {
       ssoUser = e.detail;
       updateSsoUserUI(ssoUser);
 
-      // Re-subscribe Firestore listeners with updated user path
-      if (useFirebase && db) {
-        if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
-        startRealtimeSync();
+      // Auto-connect Firestore when SSO arrives
+      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
+      try {
+        const fb = await window._firebaseReady;
+        if (fb && fb.ok) {
+          initFromSharedFirebase(fb);
+          await migrateLocalToFirestore();
+          startRealtimeSync();
+        } else {
+          updateSyncStatus('local');
+        }
+      } catch {
+        updateSyncStatus('local');
       }
     });
 
@@ -1632,96 +1556,20 @@
     /* ── Sync status indicator ── */
     function updateSyncStatus(state) {
       const el = $('sync-status');
-      const banner = $('firebase-banner');
-      const fbLabel = $('btn-firebase-label');
       const label = ssoUser ? 'SSO Synced' : 'Synced';
 
       if (state === 'connected') {
         el.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span> <span class="text-green-400">${label}</span>`;
         el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-green-500/10';
-        banner.classList.add('hidden');
-        fbLabel.textContent = 'Settings';
       } else if (state === 'error') {
         el.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></span> <span class="text-red-400">Offline</span>';
         el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/10';
-        fbLabel.textContent = 'Settings';
       } else {
         // local-only
         el.innerHTML = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500"></span> <span class="text-zinc-500">Local</span>';
         el.className = 'flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-500/10';
-        banner.classList.remove('hidden');
-        fbLabel.textContent = 'Connect';
       }
     }
-
-    /* ── Firebase setup modal ── */
-    const fbModal = $('firebase-modal');
-    const fbConfigInput = $('fb-config-input');
-    const fbStatus = $('fb-setup-status');
-
-    function openFirebaseModal() {
-      // Pre-fill with saved config if any
-      const saved = getFirebaseConfig();
-      if (saved) {
-        fbConfigInput.value = JSON.stringify(saved, null, 2);
-        $('btn-fb-disconnect').classList.remove('hidden');
-      } else {
-        fbConfigInput.value = '';
-        $('btn-fb-disconnect').classList.add('hidden');
-      }
-      fbStatus.classList.add('hidden');
-      fbModal.classList.remove('hidden');
-      fbModal.classList.add('flex');
-    }
-
-    function closeFirebaseModal() {
-      fbModal.classList.add('hidden');
-      fbModal.classList.remove('flex');
-    }
-
-    function showFbStatus(msg, ok) {
-      fbStatus.textContent = msg;
-      fbStatus.className = `text-xs font-mono rounded-lg p-3 ${ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`;
-      fbStatus.classList.remove('hidden');
-    }
-
-    $('btn-firebase-setup').addEventListener('click', openFirebaseModal);
-    $('btn-banner-setup').addEventListener('click', openFirebaseModal);
-    $('btn-fb-modal-close').addEventListener('click', closeFirebaseModal);
-    $('btn-fb-cancel').addEventListener('click', closeFirebaseModal);
-    fbModal.addEventListener('click', e => { if (e.target === fbModal) closeFirebaseModal(); });
-
-    $('btn-fb-connect').addEventListener('click', async () => {
-      showFbStatus('Connecting...', true);
-      try {
-        // Re-check the shared Firebase init promise
-        const fb = await window._firebaseReady;
-        if (!fb || !fb.ok) throw new Error('Authentication failed');
-        initFromSharedFirebase(fb);
-        await migrateLocalToFirestore();
-        startRealtimeSync();
-        showFbStatus('Connected! Your inventory is now shared in real time.', true);
-        toast('Firebase connected', 'success');
-        setTimeout(closeFirebaseModal, 1500);
-      } catch (err) {
-        console.error('Firebase connect error:', err);
-        showFbStatus('Connection failed: ' + err.message, false);
-        useFirebase = false;
-        db = null;
-      }
-    });
-
-    $('btn-fb-disconnect').addEventListener('click', () => {
-      if (firestoreUnsubscribe) { firestoreUnsubscribe(); firestoreUnsubscribe = null; }
-      localStorage.removeItem(FB_CONFIG_KEY);
-      useFirebase = false;
-      db = null;
-      // Keep local data as-is
-      updateSyncStatus('local');
-      closeFirebaseModal();
-      toast('Disconnected — using local storage', 'info');
-      renderInventory();
-    });
 
     /* ── Tab switching ── */
     const tabViewer    = $('tab-viewer');
