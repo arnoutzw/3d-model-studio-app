@@ -229,6 +229,10 @@
         <button id="btn-dxf-screenshot" class="hidden text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot DXF (S)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
+        <button id="btn-dxf-gcode" class="hidden bg-zinc-700 hover:bg-zinc-600 text-zinc-300 font-mono font-bold px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5" title="Export G-code">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          G-code
+        </button>
         <button id="btn-screenshot" class="text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot (S)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
@@ -753,6 +757,113 @@
       <div class="flex gap-2">
         <button id="btn-confirm-delete" class="flex-1 bg-red-500 hover:bg-red-400 text-white font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Delete</button>
         <button id="btn-cancel-delete" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== G-CODE EXPORT MODAL ===== -->
+  <div id="gcode-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-mono font-bold text-sm text-zinc-100">Export G-code</h3>
+          <button id="btn-gcode-close" class="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Mode selector -->
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Mode</label>
+            <div class="flex gap-2">
+              <button id="gc-mode-laser" class="flex-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors" data-mode="laser">Laser (Marlin)</button>
+              <button id="gc-mode-cnc" class="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors" data-mode="cnc">CNC / Router</button>
+            </div>
+          </div>
+
+          <!-- Laser settings -->
+          <div id="gc-laser-settings">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Laser power (S value, 0-255)</label>
+                <input type="number" id="gc-laser-power" value="255" min="0" max="255" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Cut feed rate (mm/min)</label>
+                <input type="number" id="gc-laser-feed" value="300" min="1" max="50000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Travel feed rate (mm/min)</label>
+                <input type="number" id="gc-laser-travel" value="1500" min="1" max="50000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Passes</label>
+                <input type="number" id="gc-laser-passes" value="1" min="1" max="100" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Laser mode</label>
+              <div class="flex gap-2">
+                <label class="flex items-center gap-1.5 text-xs font-mono text-zinc-400 cursor-pointer">
+                  <input type="radio" name="gc-laser-mode" value="M4" checked class="accent-amber-500"> <span>M4 Dynamic (power scales with speed)</span>
+                </label>
+              </div>
+              <div class="flex gap-2 mt-1">
+                <label class="flex items-center gap-1.5 text-xs font-mono text-zinc-400 cursor-pointer">
+                  <input type="radio" name="gc-laser-mode" value="M3" class="accent-amber-500"> <span>M3 Constant (fixed power)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- CNC settings (hidden by default) -->
+          <div id="gc-cnc-settings" class="hidden">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Feed Rate XY (mm/min)</label>
+                <input type="number" id="gc-feed-xy" value="800" min="1" max="50000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Feed Rate Z (mm/min)</label>
+                <input type="number" id="gc-feed-z" value="300" min="1" max="10000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Safe Z height (mm)</label>
+                <input type="number" id="gc-safe-z" value="5" min="0" step="0.5" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Cut depth per pass (mm)</label>
+                <input type="number" id="gc-pass-depth" value="1" min="0.1" step="0.1" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Total depth (mm)</label>
+                <input type="number" id="gc-total-depth" value="-1" max="0" step="0.5" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+              <div>
+                <label class="text-[10px] text-zinc-500 font-mono block mb-1.5">Spindle speed (RPM)</label>
+                <input type="number" id="gc-spindle" value="12000" min="0" max="60000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none focus:border-amber-500/50">
+              </div>
+            </div>
+          </div>
+
+          <!-- Info note -->
+          <div id="gc-info-note" class="bg-zinc-800/50 rounded-lg p-3 text-[11px] font-mono text-zinc-500">
+            Marlin laser mode: uses M4/M3 inline laser control with S parameter. Laser turns on during G1 cuts and off during G0 travel moves. Enable <span class="text-amber-400">LASER_FEATURE</span> in Marlin firmware.
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex gap-2">
+            <button id="btn-gcode-export" class="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2 rounded-lg text-xs transition-colors">Export .gcode</button>
+            <button id="btn-gcode-cancel" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono px-4 py-2 rounded-lg text-xs transition-colors">Cancel</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1661,6 +1772,7 @@
     const btnOpenDxf   = $('btn-open-dxf');
     const btnScreenshot = $('btn-screenshot');
     const btnDxfScreenshot = $('btn-dxf-screenshot');
+    const btnDxfGcode  = $('btn-dxf-gcode');
     const btnPanel     = $('btn-panel');
     const btnSaveCloud = $('btn-save-cloud');
     const allTabs = [tabViewer, tabDxf, tabFilaments];
@@ -1674,6 +1786,7 @@
       btnOpenDxf.classList.add('hidden');
       btnScreenshot.classList.add('hidden');
       btnDxfScreenshot.classList.add('hidden');
+      btnDxfGcode.classList.add('hidden');
       btnPanel.classList.add('hidden');
       btnSaveCloud.classList.add('hidden');
     }
@@ -1697,6 +1810,7 @@
         viewDxf.classList.add('flex');
         btnOpenDxf.classList.remove('hidden');
         btnDxfScreenshot.classList.remove('hidden');
+        btnDxfGcode.classList.remove('hidden');
         window.dispatchEvent(new CustomEvent('dxf-tab-activated'));
       } else {
         tabFilaments.classList.add('active', 'text-amber-400');
@@ -2867,6 +2981,242 @@
       link.download = 'dxf-screenshot.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
+    });
+
+    /* ── G-code export ── */
+    const gcModal = $('gcode-modal');
+    let gcMode = 'laser'; // 'laser' or 'cnc'
+
+    function openGcodeModal() {
+      if (!dxfLoaded) { toastDxf('Load a DXF file first', 'error'); return; }
+      gcModal.classList.remove('hidden');
+      gcModal.classList.add('flex');
+    }
+    function closeGcodeModal() {
+      gcModal.classList.add('hidden');
+      gcModal.classList.remove('flex');
+    }
+
+    $('btn-dxf-gcode').addEventListener('click', openGcodeModal);
+    $('btn-gcode-close').addEventListener('click', closeGcodeModal);
+    $('btn-gcode-cancel').addEventListener('click', closeGcodeModal);
+    gcModal.addEventListener('click', e => { if (e.target === gcModal) closeGcodeModal(); });
+
+    // Mode toggle
+    $('gc-mode-laser').addEventListener('click', () => {
+      gcMode = 'laser';
+      $('gc-mode-laser').className = 'flex-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors';
+      $('gc-mode-cnc').className = 'flex-1 bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors';
+      $('gc-laser-settings').classList.remove('hidden');
+      $('gc-cnc-settings').classList.add('hidden');
+      $('gc-info-note').innerHTML = 'Marlin laser mode: uses M4/M3 inline laser control with S parameter. Laser turns on during G1 cuts and off during G0 travel moves. Enable <span class="text-amber-400">LASER_FEATURE</span> in Marlin firmware.';
+    });
+    $('gc-mode-cnc').addEventListener('click', () => {
+      gcMode = 'cnc';
+      $('gc-mode-cnc').className = 'flex-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors';
+      $('gc-mode-laser').className = 'flex-1 bg-zinc-800 border border-zinc-700 text-zinc-400 font-mono px-3 py-2 rounded-lg text-xs transition-colors';
+      $('gc-cnc-settings').classList.remove('hidden');
+      $('gc-laser-settings').classList.add('hidden');
+      $('gc-info-note').textContent = 'CNC mode: uses spindle M3/M5, plunge Z for cutting, and safe Z for travel. Multi-pass supported with total depth and depth per pass.';
+    });
+
+    // Flatten drawables into toolpath segments (arrays of {x,y} points)
+    function flattenToToolpaths() {
+      const paths = [];
+      for (const d of entities) {
+        switch (d.type) {
+          case 'line':
+            paths.push([{ x: d.x1, y: d.y1 }, { x: d.x2, y: d.y2 }]);
+            break;
+          case 'circle': {
+            const pts = [];
+            const steps = Math.max(36, Math.ceil(d.r * 4));
+            for (let i = 0; i <= steps; i++) {
+              const a = (i / steps) * Math.PI * 2;
+              pts.push({ x: d.cx + d.r * Math.cos(a), y: d.cy + d.r * Math.sin(a) });
+            }
+            paths.push(pts);
+            break;
+          }
+          case 'arc': {
+            const pts = [];
+            let sa = d.sa, ea = d.ea;
+            if (ea <= sa) ea += Math.PI * 2;
+            const steps = Math.max(16, Math.ceil((ea - sa) / (Math.PI / 36)));
+            for (let i = 0; i <= steps; i++) {
+              const a = sa + (ea - sa) * i / steps;
+              pts.push({ x: d.cx + d.r * Math.cos(a), y: d.cy + d.r * Math.sin(a) });
+            }
+            paths.push(pts);
+            break;
+          }
+          case 'ellipse': {
+            const pts = [];
+            const a = Math.sqrt(d.mx * d.mx + d.my * d.my);
+            const b = a * (d.ratio || 1);
+            const rot = Math.atan2(d.my, d.mx);
+            let sa = d.sa || 0, ea = d.ea || Math.PI * 2;
+            if (ea <= sa) ea += Math.PI * 2;
+            const steps = Math.max(36, Math.ceil((ea - sa) / (Math.PI / 36)));
+            for (let i = 0; i <= steps; i++) {
+              const t = sa + (ea - sa) * i / steps;
+              const lx = a * Math.cos(t), ly = b * Math.sin(t);
+              pts.push({ x: d.cx + lx * Math.cos(rot) - ly * Math.sin(rot), y: d.cy + lx * Math.sin(rot) + ly * Math.cos(rot) });
+            }
+            paths.push(pts);
+            break;
+          }
+          case 'polyline': {
+            if (d.pts.length < 2) break;
+            const pts = [];
+            for (let j = 0; j < d.pts.length; j++) {
+              const cur = d.pts[j];
+              if (j > 0 && d.pts[j - 1].bulge && Math.abs(d.pts[j - 1].bulge) > 1e-6) {
+                // Interpolate bulge arc
+                const prev = d.pts[j - 1];
+                const dx = cur.x - prev.x, dy = cur.y - prev.y;
+                const chord = Math.sqrt(dx * dx + dy * dy);
+                if (chord < 1e-10) { pts.push({ x: cur.x, y: cur.y }); continue; }
+                const s = Math.abs(prev.bulge) * chord / 2;
+                const r = (chord * chord / 4 + s * s) / (2 * s);
+                const midX = (prev.x + cur.x) / 2, midY = (prev.y + cur.y) / 2;
+                const h = Math.sqrt(Math.max(0, r * r - chord * chord / 4));
+                const sign = prev.bulge > 0 ? 1 : -1;
+                const nx = -dy / chord, ny = dx / chord;
+                const cx = midX + sign * h * nx, cy = midY + sign * h * ny;
+                const sa = Math.atan2(prev.y - cy, prev.x - cx);
+                const ea = Math.atan2(cur.y - cy, cur.x - cx);
+                let sweep = ea - sa;
+                if (prev.bulge > 0 && sweep < 0) sweep += Math.PI * 2;
+                if (prev.bulge < 0 && sweep > 0) sweep -= Math.PI * 2;
+                const arcSteps = Math.max(8, Math.ceil(Math.abs(sweep) / (Math.PI / 18)));
+                for (let k = 1; k <= arcSteps; k++) {
+                  const a = sa + sweep * k / arcSteps;
+                  pts.push({ x: cx + Math.abs(r) * Math.cos(a), y: cy + Math.abs(r) * Math.sin(a) });
+                }
+              } else {
+                pts.push({ x: cur.x, y: cur.y });
+              }
+            }
+            if (d.closed && pts.length > 1) {
+              pts.push({ x: pts[0].x, y: pts[0].y });
+            }
+            if (pts.length >= 2) paths.push(pts);
+            break;
+          }
+        }
+      }
+      return paths;
+    }
+
+    function f(v) { return v.toFixed(3); }
+
+    function generateLaserGcode() {
+      const power = parseInt($('gc-laser-power').value) || 255;
+      const cutFeed = parseInt($('gc-laser-feed').value) || 300;
+      const travelFeed = parseInt($('gc-laser-travel').value) || 1500;
+      const passes = parseInt($('gc-laser-passes').value) || 1;
+      const laserCmd = document.querySelector('input[name="gc-laser-mode"]:checked')?.value || 'M4';
+
+      const paths = flattenToToolpaths();
+      if (!paths.length) return null;
+
+      const lines = [];
+      lines.push('; Generated by Model Studio — DXF to G-code (Marlin Laser)');
+      lines.push('; Date: ' + new Date().toISOString());
+      lines.push('; Entities: ' + entities.length + ', Paths: ' + paths.length);
+      lines.push('; Laser power: S' + power + ', Cut feed: F' + cutFeed + ', Travel: F' + travelFeed);
+      lines.push('');
+      lines.push('G21 ; mm units');
+      lines.push('G90 ; absolute positioning');
+      lines.push(`${laserCmd} S0 ; enable laser mode (${laserCmd === 'M4' ? 'dynamic' : 'constant'}), power off`);
+      lines.push('G0 F' + travelFeed);
+      lines.push('G28 ; home all axes');
+      lines.push('');
+
+      for (let pass = 0; pass < passes; pass++) {
+        if (passes > 1) lines.push(`; --- Pass ${pass + 1} of ${passes} ---`);
+
+        for (const path of paths) {
+          // Travel to start
+          lines.push(`G0 X${f(path[0].x)} Y${f(path[0].y)} S0`);
+          // Cut path with laser on
+          for (let i = 1; i < path.length; i++) {
+            lines.push(`G1 X${f(path[i].x)} Y${f(path[i].y)} S${power} F${cutFeed}`);
+          }
+          // Laser off after path
+          lines.push('G0 S0');
+        }
+
+        if (passes > 1) lines.push('');
+      }
+
+      lines.push('');
+      lines.push('G0 X0 Y0 S0 ; return to origin');
+      lines.push('M5 ; laser off');
+      lines.push('M84 ; disable steppers');
+      return lines.join('\n');
+    }
+
+    function generateCncGcode() {
+      const feedXY = parseInt($('gc-feed-xy').value) || 800;
+      const feedZ = parseInt($('gc-feed-z').value) || 300;
+      const safeZ = parseFloat($('gc-safe-z').value) || 5;
+      const totalDepth = parseFloat($('gc-total-depth').value) || -1;
+      const passDepth = parseFloat($('gc-pass-depth').value) || 1;
+      const spindle = parseInt($('gc-spindle').value) || 12000;
+
+      const paths = flattenToToolpaths();
+      if (!paths.length) return null;
+
+      const numPasses = Math.max(1, Math.ceil(Math.abs(totalDepth) / passDepth));
+
+      const lines = [];
+      lines.push('; Generated by Model Studio — DXF to G-code (CNC)');
+      lines.push('; Date: ' + new Date().toISOString());
+      lines.push('; Entities: ' + entities.length + ', Paths: ' + paths.length);
+      lines.push('');
+      lines.push('G21 ; mm units');
+      lines.push('G90 ; absolute positioning');
+      lines.push('M3 S' + spindle + ' ; spindle on');
+      lines.push('G4 P2 ; dwell 2s for spindle');
+      lines.push(`G0 Z${f(safeZ)} ; raise to safe Z`);
+      lines.push('');
+
+      for (let pass = 0; pass < numPasses; pass++) {
+        const cutZ = -Math.min((pass + 1) * passDepth, Math.abs(totalDepth));
+        lines.push(`; --- Pass ${pass + 1} of ${numPasses}, Z=${f(cutZ)} ---`);
+
+        for (const path of paths) {
+          lines.push(`G0 Z${f(safeZ)} F${feedZ}`);
+          lines.push(`G0 X${f(path[0].x)} Y${f(path[0].y)} F${feedXY}`);
+          lines.push(`G1 Z${f(cutZ)} F${feedZ}`);
+          for (let i = 1; i < path.length; i++) {
+            lines.push(`G1 X${f(path[i].x)} Y${f(path[i].y)} F${feedXY}`);
+          }
+        }
+
+        lines.push('');
+      }
+
+      lines.push(`G0 Z${f(safeZ)} F${feedZ} ; retract`);
+      lines.push('G0 X0 Y0 ; return to origin');
+      lines.push('M5 ; spindle off');
+      return lines.join('\n');
+    }
+
+    $('btn-gcode-export').addEventListener('click', () => {
+      const gcode = gcMode === 'laser' ? generateLaserGcode() : generateCncGcode();
+      if (!gcode) { toastDxf('No geometry to export', 'error'); return; }
+
+      const blob = new Blob([gcode], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.download = 'output.gcode';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      closeGcodeModal();
+      toastDxf('G-code exported', 'success');
     });
 
     /* ── Keyboard shortcuts (when DXF tab is active) ── */
