@@ -186,7 +186,7 @@
           <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
           <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
         </div>
-        <h1 class="font-mono font-bold text-amber-500 text-sm truncate">3D Model Viewer</h1>
+        <h1 class="font-mono font-bold text-amber-500 text-sm truncate">Model Studio</h1>
         <span id="file-badge" class="hidden text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-mono truncate max-w-[200px]"></span>
       </div>
       <!-- Tab navigation -->
@@ -194,7 +194,13 @@
         <button id="tab-viewer" class="tab-btn active font-mono text-xs px-3 py-1.5 rounded-md transition-colors text-amber-400">
           <span class="flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            Viewer
+            3D Viewer
+          </span>
+        </button>
+        <button id="tab-dxf" class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md transition-colors text-zinc-500 hover:text-zinc-300">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            2D DXF
           </span>
         </button>
         <button id="tab-filaments" class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md transition-colors text-zinc-500 hover:text-zinc-300">
@@ -215,6 +221,14 @@
           Save
         </button>
         <input type="file" id="file-input" class="hidden" accept=".stl,.3mf">
+        <button id="btn-open-dxf" class="hidden bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Open DXF
+        </button>
+        <input type="file" id="dxf-file-input" class="hidden" accept=".dxf">
+        <button id="btn-dxf-screenshot" class="hidden text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot DXF (S)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
         <button id="btn-screenshot" class="text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 p-1.5 rounded-lg transition-colors" title="Screenshot (S)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
@@ -398,8 +412,9 @@
         <section>
           <h3 class="font-mono font-bold text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Shortcuts</h3>
           <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] font-mono">
-            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">1</kbd><span class="text-zinc-500">Viewer tab</span>
-            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">2</kbd><span class="text-zinc-500">Filaments tab</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">1</kbd><span class="text-zinc-500">3D Viewer tab</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">2</kbd><span class="text-zinc-500">2D DXF tab</span>
+            <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">3</kbd><span class="text-zinc-500">Filaments tab</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">R</kbd><span class="text-zinc-500">Reset view</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">F</kbd><span class="text-zinc-500">Fit to view</span>
             <kbd class="text-zinc-600 bg-zinc-800 px-1 rounded text-center">W</kbd><span class="text-zinc-500">Wireframe</span>
@@ -413,6 +428,69 @@
 
       </div>
     </aside>
+  </main>
+
+  <!-- ===== MAIN: 2D DXF VIEWER TAB ===== -->
+  <main id="view-dxf" class="hidden" style="height:calc(100vh - 45px)">
+    <div id="dxf-viewport" class="relative w-full h-full bg-zinc-950 overflow-hidden">
+
+      <!-- Empty state -->
+      <div id="dxf-empty-state" class="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
+        <div class="text-center p-8">
+          <svg class="w-16 h-16 mx-auto text-zinc-700 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+          <p class="font-mono text-zinc-500 text-sm mb-1">Drop DXF file here</p>
+          <p class="text-xs text-zinc-600">or click <span class="text-amber-500/70 font-mono">Open DXF</span> to browse</p>
+        </div>
+      </div>
+
+      <!-- Drag overlay -->
+      <div id="dxf-drag-overlay" class="absolute inset-4 hidden items-center justify-center bg-zinc-950/90 backdrop-blur-sm border-2 border-dashed border-amber-500/50 rounded-xl z-20 drag-pulse">
+        <div class="text-center">
+          <svg class="w-10 h-10 mx-auto text-amber-500 mb-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <p class="font-mono text-amber-400 text-sm">Drop DXF file</p>
+        </div>
+      </div>
+
+      <!-- Loading overlay -->
+      <div id="dxf-loading" class="absolute inset-0 hidden items-center justify-center bg-zinc-950/80 backdrop-blur-sm z-20">
+        <div class="text-center">
+          <svg class="w-8 h-8 mx-auto text-amber-500 anim-spin mb-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <p class="font-mono text-zinc-400 text-xs">Parsing DXF...</p>
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <canvas id="dxf-canvas" class="absolute inset-0 w-full h-full"></canvas>
+
+      <!-- Info overlay -->
+      <div id="dxf-info" class="hidden absolute top-3 left-3 z-10 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800 rounded-lg px-3 py-2 text-[11px] font-mono text-zinc-400 space-y-0.5">
+        <div>Entities: <span id="dxf-entity-count" class="text-zinc-200">0</span></div>
+        <div>Layers: <span id="dxf-layer-count" class="text-zinc-200">0</span></div>
+        <div>Bounds: <span id="dxf-bounds" class="text-zinc-200">-</span></div>
+      </div>
+
+      <!-- Controls overlay -->
+      <div class="absolute bottom-3 left-3 z-10 flex gap-1.5">
+        <button id="btn-dxf-fit" class="bg-zinc-800/90 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-[11px] font-mono transition-colors" title="Fit to view (F)">Fit</button>
+        <button id="btn-dxf-reset" class="bg-zinc-800/90 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-[11px] font-mono transition-colors" title="Reset view (R)">Reset</button>
+        <button id="btn-dxf-grid" class="bg-zinc-800/90 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-[11px] font-mono transition-colors" title="Toggle grid (G)">Grid</button>
+      </div>
+
+      <!-- Zoom display -->
+      <div id="dxf-zoom" class="absolute bottom-3 right-3 z-10 bg-zinc-800/90 border border-zinc-700 rounded-lg px-2.5 py-1 text-[10px] font-mono text-zinc-500">100%</div>
+
+      <!-- Controls hint -->
+      <div id="dxf-controls-hint" class="hidden absolute top-3 right-3 z-10 bg-zinc-900/80 border border-zinc-800 rounded-lg px-3 py-2 text-[10px] font-mono text-zinc-600">
+        Scroll to zoom · Drag to pan
+      </div>
+    </div>
   </main>
 
   <!-- ===== MAIN: FILAMENT INVENTORY TAB ===== -->
@@ -1083,11 +1161,12 @@
     document.addEventListener('keydown', e => {
       if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
       const k = e.key.toLowerCase();
-      // Tab switching: 1 = Viewer, 2 = Filaments
+      // Tab switching: 1 = 3D Viewer, 2 = 2D DXF, 3 = Filaments
       if (k === '1') { if (window._filamentSwitchTab) window._filamentSwitchTab('viewer'); return; }
-      if (k === '2') { if (window._filamentSwitchTab) window._filamentSwitchTab('filaments'); return; }
-      // Viewer-only shortcuts
-      if (viewFilamentsVisible()) return;
+      if (k === '2') { if (window._filamentSwitchTab) window._filamentSwitchTab('dxf'); return; }
+      if (k === '3') { if (window._filamentSwitchTab) window._filamentSwitchTab('filaments'); return; }
+      // 3D Viewer-only shortcuts
+      if (!view3DActive()) return;
       if (k === 'r') { $('btn-reset').click(); }
       else if (k === 'f') { fitToView(); }
       else if (k === 'w') { chkWire.checked = !chkWire.checked; chkWire.dispatchEvent(new Event('change')); }
@@ -1098,8 +1177,8 @@
       else if (k === 'p') { togglePanel(); }
     });
 
-    function viewFilamentsVisible() {
-      return !document.getElementById('view-filaments')?.classList.contains('hidden');
+    function view3DActive() {
+      return !document.getElementById('view-viewer')?.classList.contains('hidden');
     }
 
     // resize
@@ -1573,46 +1652,62 @@
 
     /* ── Tab switching ── */
     const tabViewer    = $('tab-viewer');
+    const tabDxf       = $('tab-dxf');
     const tabFilaments = $('tab-filaments');
     const viewViewer   = $('view-viewer');
+    const viewDxf      = $('view-dxf');
     const viewFilamentsEl = $('view-filaments');
     const btnOpen      = $('btn-open');
+    const btnOpenDxf   = $('btn-open-dxf');
     const btnScreenshot = $('btn-screenshot');
+    const btnDxfScreenshot = $('btn-dxf-screenshot');
     const btnPanel     = $('btn-panel');
     const btnSaveCloud = $('btn-save-cloud');
+    const allTabs = [tabViewer, tabDxf, tabFilaments];
+
+    function deactivateAllTabs() {
+      allTabs.forEach(t => { t.classList.remove('active', 'text-amber-400'); t.classList.add('text-zinc-500'); });
+      viewViewer.classList.add('hidden'); viewViewer.classList.remove('flex');
+      viewDxf.classList.add('hidden'); viewDxf.classList.remove('flex');
+      viewFilamentsEl.classList.add('hidden');
+      btnOpen.classList.add('hidden');
+      btnOpenDxf.classList.add('hidden');
+      btnScreenshot.classList.add('hidden');
+      btnDxfScreenshot.classList.add('hidden');
+      btnPanel.classList.add('hidden');
+      btnSaveCloud.classList.add('hidden');
+    }
 
     function switchTab(tab) {
+      deactivateAllTabs();
       if (tab === 'viewer') {
         tabViewer.classList.add('active', 'text-amber-400');
         tabViewer.classList.remove('text-zinc-500');
-        tabFilaments.classList.remove('active', 'text-amber-400');
-        tabFilaments.classList.add('text-zinc-500');
         viewViewer.classList.remove('hidden');
         viewViewer.classList.add('flex');
-        viewFilamentsEl.classList.add('hidden');
         btnOpen.classList.remove('hidden');
         btnScreenshot.classList.remove('hidden');
         btnPanel.classList.remove('hidden');
-        // Restore save button visibility based on whether a model is loaded
         if (btnSaveCloud.dataset.enabled === '1') btnSaveCloud.classList.remove('hidden');
         window.dispatchEvent(new Event('resize'));
+      } else if (tab === 'dxf') {
+        tabDxf.classList.add('active', 'text-amber-400');
+        tabDxf.classList.remove('text-zinc-500');
+        viewDxf.classList.remove('hidden');
+        viewDxf.classList.add('flex');
+        btnOpenDxf.classList.remove('hidden');
+        btnDxfScreenshot.classList.remove('hidden');
+        window.dispatchEvent(new CustomEvent('dxf-tab-activated'));
       } else {
         tabFilaments.classList.add('active', 'text-amber-400');
         tabFilaments.classList.remove('text-zinc-500');
-        tabViewer.classList.remove('active', 'text-amber-400');
-        tabViewer.classList.add('text-zinc-500');
-        viewViewer.classList.add('hidden');
-        viewViewer.classList.remove('flex');
         viewFilamentsEl.classList.remove('hidden');
-        btnOpen.classList.add('hidden');
-        btnScreenshot.classList.add('hidden');
-        btnPanel.classList.add('hidden');
-        btnSaveCloud.classList.add('hidden');
         renderInventory();
       }
     }
 
     tabViewer.addEventListener('click', () => switchTab('viewer'));
+    tabDxf.addEventListener('click', () => switchTab('dxf'));
     tabFilaments.addEventListener('click', () => switchTab('filaments'));
 
     /* ── Rendering ── */
@@ -1992,6 +2087,659 @@
 
     // Expose switchTab for keyboard shortcut
     window._filamentSwitchTab = switchTab;
+  })();
+  </script>
+
+  <!-- ===== 2D DXF VIEWER ===== -->
+  <script>
+  (function() {
+    const $ = id => document.getElementById(id);
+    const canvas = $('dxf-canvas');
+    const ctx = canvas.getContext('2d');
+    const viewport = $('dxf-viewport');
+    const emptyState = $('dxf-empty-state');
+    const dragOverlay = $('dxf-drag-overlay');
+    const loadingEl = $('dxf-loading');
+    const infoEl = $('dxf-info');
+    const hintEl = $('dxf-controls-hint');
+    const zoomEl = $('dxf-zoom');
+    const fileInput = $('dxf-file-input');
+
+    let entities = [];
+    let layers = {};
+    let bounds = null;
+    let showGrid = true;
+
+    // Camera: pan + zoom
+    let cam = { x: 0, y: 0, zoom: 1 };
+    let dxfLoaded = false;
+
+    /* ── DXF color table (AutoCAD ACI → hex) ── */
+    const ACI = [
+      '#000000','#FF0000','#FFFF00','#00FF00','#00FFFF','#0000FF','#FF00FF','#FFFFFF',
+      '#808080','#C0C0C0','#FF0000','#FF7F7F','#A50000','#A55252','#7F0000','#7F3F3F',
+      '#4C0000','#4C2626','#260000','#261313','#FF3F00','#FF9F7F','#A52900','#A56752',
+      '#7F1F00','#7F4F3F','#4C1300','#4C2F26','#260900','#261713','#FF7F00','#FFBF7F',
+      '#A55200','#A57C52','#7F3F00','#7F5F3F','#4C2600','#4C3926','#261300','#261C13',
+      '#FFBF00','#FFDF7F','#A57C00','#A59152','#7F5F00','#7F6F3F','#4C3900','#4C4226',
+      '#261C00','#262113','#FFFF00','#FFFF7F','#A5A500','#A5A552','#7F7F00','#7F7F3F',
+      '#4C4C00','#4C4C26','#262600','#262613','#BFFF00','#DFFF7F','#7CA500','#91A552',
+      '#5F7F00','#6F7F3F','#394C00','#424C26','#1C2600','#212613','#7FFF00','#BFFF7F',
+      '#52A500','#7CA552','#3F7F00','#5F7F3F','#264C00','#394C26','#132600','#1C2613',
+      '#3FFF00','#9FFF7F','#29A500','#67A552','#1F7F00','#4F7F3F','#134C00','#2F4C26',
+      '#092600','#172613','#00FF00','#7FFF7F','#00A500','#52A552','#007F00','#3F7F3F',
+      '#004C00','#264C26','#002600','#132613','#00FF3F','#7FFF9F','#00A529','#52A567',
+      '#007F1F','#3F7F4F','#004C13','#264C2F','#002609','#132617','#00FF7F','#7FFFBF',
+      '#00A552','#52A57C','#007F3F','#3F7F5F','#004C26','#264C39','#002613','#13261C',
+      '#00FFBF','#7FFFDF','#00A57C','#52A591','#007F5F','#3F7F6F','#004C39','#264C42',
+      '#00261C','#132621','#00FFFF','#7FFFFF','#00A5A5','#52A5A5','#007F7F','#3F7F7F',
+      '#004C4C','#264C4C','#002626','#132626','#00BFFF','#7FDFFF','#007CA5','#5291A5',
+      '#005F7F','#3F6F7F','#00394C','#26424C','#001C26','#132126','#007FFF','#7FBFFF',
+      '#0052A5','#527CA5','#003F7F','#3F5F7F','#00264C','#26394C','#001326','#131C26',
+      '#003FFF','#7F9FFF','#0029A5','#5267A5','#001F7F','#3F4F7F','#00134C','#262F4C',
+      '#000926','#131726','#0000FF','#7F7FFF','#0000A5','#5252A5','#00007F','#3F3F7F',
+      '#00004C','#26264C','#000026','#131326','#3F00FF','#9F7FFF','#2900A5','#6752A5',
+      '#1F007F','#4F3F7F','#13004C','#2F264C','#090026','#171326','#7F00FF','#BF7FFF',
+      '#5200A5','#7C52A5','#3F007F','#5F3F7F','#26004C','#39264C','#130026','#1C1326',
+      '#BF00FF','#DF7FFF','#7C00A5','#9152A5','#5F007F','#6F3F7F','#39004C','#42264C',
+      '#1C0026','#211326','#FF00FF','#FF7FFF','#A500A5','#A552A5','#7F007F','#7F3F7F',
+      '#4C004C','#4C264C','#260026','#261326','#FF00BF','#FF7FDF','#A5007C','#A55291',
+      '#7F005F','#7F3F6F','#4C0039','#4C2642','#26001C','#261321','#FF007F','#FF7FBF',
+      '#A50052','#A5527C','#7F003F','#7F3F5F','#4C0026','#4C2639','#260013','#26131C',
+      '#FF003F','#FF7F9F','#A50029','#A55267','#7F001F','#7F3F4F','#4C0013','#4C262F',
+      '#260009','#261317','#333333','#505050','#696969','#828282','#BEBEBE','#FFFFFF'
+    ];
+
+    function aciColor(n) {
+      if (n === 0 || n === 256) return null; // BYLAYER / BYBLOCK
+      return ACI[Math.abs(n)] || '#FFFFFF';
+    }
+
+    /* ── Minimal DXF parser ── */
+    function parseDXF(text) {
+      const lines = text.split(/\r?\n/);
+      const pairs = [];
+      for (let i = 0; i + 1 < lines.length; i += 2) {
+        pairs.push({ code: parseInt(lines[i].trim(), 10), value: lines[i + 1].trim() });
+      }
+
+      const result = { entities: [], layers: {} };
+      let i = 0;
+
+      // Find TABLES section for layers
+      while (i < pairs.length) {
+        if (pairs[i].code === 2 && pairs[i].value === 'LAYER') {
+          i++;
+          // Parse layer table entries
+          while (i < pairs.length && !(pairs[i].code === 0 && pairs[i].value === 'ENDTAB')) {
+            if (pairs[i].code === 0 && pairs[i].value === 'LAYER') {
+              const layer = { name: '0', color: 7 };
+              i++;
+              while (i < pairs.length && pairs[i].code !== 0) {
+                if (pairs[i].code === 2) layer.name = pairs[i].value;
+                if (pairs[i].code === 62) layer.color = parseInt(pairs[i].value, 10);
+                i++;
+              }
+              result.layers[layer.name] = layer;
+            } else {
+              i++;
+            }
+          }
+        }
+        if (pairs[i] && pairs[i].code === 2 && pairs[i].value === 'ENTITIES') break;
+        i++;
+      }
+
+      // Find ENTITIES section
+      i = 0;
+      while (i < pairs.length) {
+        if (pairs[i].code === 2 && pairs[i].value === 'ENTITIES') { i++; break; }
+        i++;
+      }
+
+      // Parse entities
+      while (i < pairs.length) {
+        if (pairs[i].code === 0 && pairs[i].value === 'ENDSEC') break;
+        if (pairs[i].code === 0) {
+          const type = pairs[i].value;
+          const ent = { type, layer: '0', color: null, props: {} };
+          i++;
+          while (i < pairs.length && pairs[i].code !== 0) {
+            const c = pairs[i].code, v = pairs[i].value;
+            if (c === 8) ent.layer = v;
+            else if (c === 62) ent.color = parseInt(v, 10);
+            else {
+              if (!ent.props[c]) ent.props[c] = [];
+              ent.props[c].push(v);
+            }
+            i++;
+          }
+          result.entities.push(ent);
+        } else {
+          i++;
+        }
+      }
+
+      return result;
+    }
+
+    function prop(ent, code, idx) {
+      const arr = ent.props[code];
+      return arr ? parseFloat(arr[idx || 0]) : 0;
+    }
+
+    function propStr(ent, code, idx) {
+      const arr = ent.props[code];
+      return arr ? arr[idx || 0] : '';
+    }
+
+    /* ── Convert parsed entities to drawable primitives ── */
+    function buildDrawables(parsed) {
+      const drawables = [];
+
+      function getColor(ent) {
+        if (ent.color && ent.color > 0 && ent.color < 256) return aciColor(ent.color);
+        const layer = parsed.layers[ent.layer];
+        if (layer) return aciColor(Math.abs(layer.color)) || '#FFFFFF';
+        return '#FFFFFF';
+      }
+
+      for (const ent of parsed.entities) {
+        const color = getColor(ent);
+        switch (ent.type) {
+          case 'LINE':
+            drawables.push({ type: 'line', x1: prop(ent,10), y1: prop(ent,20), x2: prop(ent,11), y2: prop(ent,21), color });
+            break;
+
+          case 'CIRCLE':
+            drawables.push({ type: 'circle', cx: prop(ent,10), cy: prop(ent,20), r: prop(ent,40), color });
+            break;
+
+          case 'ARC': {
+            const cx = prop(ent,10), cy = prop(ent,20), r = prop(ent,40);
+            const sa = prop(ent,50) * Math.PI / 180;
+            const ea = prop(ent,51) * Math.PI / 180;
+            drawables.push({ type: 'arc', cx, cy, r, sa, ea, color });
+            break;
+          }
+
+          case 'LWPOLYLINE':
+          case 'POLYLINE': {
+            const xs = ent.props[10] || [];
+            const ys = ent.props[20] || [];
+            const bulges = ent.props[42] || [];
+            const closed = (parseInt(ent.props[70]?.[0] || '0', 10) & 1) === 1;
+            const pts = xs.map((x, j) => ({ x: parseFloat(x), y: parseFloat(ys[j] || 0), bulge: parseFloat(bulges[j] || 0) }));
+            if (pts.length >= 2) {
+              drawables.push({ type: 'polyline', pts, closed, color });
+            }
+            break;
+          }
+
+          case 'SPLINE': {
+            // Approximate spline as polyline through fit/control points
+            const xs = ent.props[11] || ent.props[10] || [];
+            const ys = ent.props[21] || ent.props[20] || [];
+            const pts = xs.map((x, j) => ({ x: parseFloat(x), y: parseFloat(ys[j] || 0), bulge: 0 }));
+            const closed = (parseInt(ent.props[70]?.[0] || '0', 10) & 1) === 1;
+            if (pts.length >= 2) {
+              drawables.push({ type: 'polyline', pts, closed, color });
+            }
+            break;
+          }
+
+          case 'ELLIPSE': {
+            const cx = prop(ent,10), cy = prop(ent,20);
+            const mx = prop(ent,11), my = prop(ent,21); // major axis endpoint relative to center
+            const ratio = prop(ent,40) || 1;
+            const sa = prop(ent,41) || 0;
+            const ea = prop(ent,42) || Math.PI * 2;
+            drawables.push({ type: 'ellipse', cx, cy, mx, my, ratio, sa, ea, color });
+            break;
+          }
+
+          case 'POINT':
+            drawables.push({ type: 'point', x: prop(ent,10), y: prop(ent,20), color });
+            break;
+
+          case 'TEXT':
+          case 'MTEXT': {
+            const x = prop(ent,10), y = prop(ent,20);
+            let text = propStr(ent,1,0) || '';
+            // Strip MTEXT formatting codes
+            text = text.replace(/\\[A-Za-z][^;]*;/g, '').replace(/\{|\}/g, '').replace(/\\P/g, '\n');
+            const height = prop(ent,40) || 2.5;
+            drawables.push({ type: 'text', x, y, text, height, color });
+            break;
+          }
+
+          case 'INSERT':
+            // Block inserts are complex; mark as a point
+            drawables.push({ type: 'point', x: prop(ent,10), y: prop(ent,20), color });
+            break;
+
+          case 'DIMENSION':
+            // Simplified: draw a line between definition points if available
+            if (ent.props[13] && ent.props[14]) {
+              drawables.push({ type: 'line', x1: prop(ent,13), y1: prop(ent,23), x2: prop(ent,14), y2: prop(ent,24), color });
+            }
+            break;
+
+          case 'VERTEX': {
+            // VERTEX entities within old-style POLYLINE
+            break;
+          }
+
+          case 'SEQEND':
+            break;
+
+          default:
+            break;
+        }
+      }
+
+      return drawables;
+    }
+
+    /* ── Compute bounding box ── */
+    function computeBounds(drawables) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      function expand(x, y) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+      for (const d of drawables) {
+        switch (d.type) {
+          case 'line': expand(d.x1, d.y1); expand(d.x2, d.y2); break;
+          case 'circle': expand(d.cx - d.r, d.cy - d.r); expand(d.cx + d.r, d.cy + d.r); break;
+          case 'arc': expand(d.cx - d.r, d.cy - d.r); expand(d.cx + d.r, d.cy + d.r); break;
+          case 'ellipse': {
+            const a = Math.sqrt(d.mx * d.mx + d.my * d.my);
+            expand(d.cx - a, d.cy - a); expand(d.cx + a, d.cy + a); break;
+          }
+          case 'polyline': d.pts.forEach(p => expand(p.x, p.y)); break;
+          case 'point': expand(d.x, d.y); break;
+          case 'text': expand(d.x, d.y); break;
+        }
+      }
+      if (minX === Infinity) return { minX: -10, minY: -10, maxX: 10, maxY: 10 };
+      return { minX, minY, maxX, maxY };
+    }
+
+    /* ── Fit view ── */
+    function fitView() {
+      if (!bounds) return;
+      const w = canvas.width, h = canvas.height;
+      const dw = bounds.maxX - bounds.minX || 1;
+      const dh = bounds.maxY - bounds.minY || 1;
+      const padding = 0.9;
+      cam.zoom = Math.min(w / dw, h / dh) * padding;
+      cam.x = (bounds.minX + bounds.maxX) / 2;
+      cam.y = (bounds.minY + bounds.maxY) / 2;
+      render();
+    }
+
+    function resetView() {
+      cam = { x: 0, y: 0, zoom: 1 };
+      if (bounds) fitView();
+      else render();
+    }
+
+    /* ── World ↔ Screen transforms ── */
+    function worldToScreen(wx, wy) {
+      const cx = canvas.width / 2, cy = canvas.height / 2;
+      return { x: cx + (wx - cam.x) * cam.zoom, y: cy - (wy - cam.y) * cam.zoom };
+    }
+
+    /* ── Draw grid ── */
+    function drawGrid() {
+      if (!showGrid) return;
+      const w = canvas.width, h = canvas.height;
+
+      // Calculate grid spacing that looks reasonable at current zoom
+      let gridSize = 1;
+      const pixelSpacing = gridSize * cam.zoom;
+      if (pixelSpacing < 10) gridSize = Math.pow(10, Math.ceil(Math.log10(10 / cam.zoom)));
+      else if (pixelSpacing > 200) gridSize = Math.pow(10, Math.floor(Math.log10(200 / cam.zoom)));
+
+      // Visible world range
+      const left = cam.x - w / (2 * cam.zoom);
+      const right = cam.x + w / (2 * cam.zoom);
+      const bottom = cam.y - h / (2 * cam.zoom);
+      const top = cam.y + h / (2 * cam.zoom);
+
+      ctx.strokeStyle = '#27272a';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+
+      const startX = Math.floor(left / gridSize) * gridSize;
+      const startY = Math.floor(bottom / gridSize) * gridSize;
+
+      for (let x = startX; x <= right; x += gridSize) {
+        const s = worldToScreen(x, 0);
+        ctx.moveTo(s.x, 0); ctx.lineTo(s.x, h);
+      }
+      for (let y = startY; y <= top; y += gridSize) {
+        const s = worldToScreen(0, y);
+        ctx.moveTo(0, s.y); ctx.lineTo(w, s.y);
+      }
+      ctx.stroke();
+
+      // Draw origin axes
+      ctx.lineWidth = 1;
+      const o = worldToScreen(0, 0);
+      ctx.strokeStyle = '#3f3f4680';
+      ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(w, o.y); ctx.stroke();
+    }
+
+    /* ── Render drawables ── */
+    function render() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Clear
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(0, 0, w, h);
+
+      drawGrid();
+
+      if (!entities.length) return;
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      for (const d of entities) {
+        ctx.strokeStyle = d.color || '#FFFFFF';
+        ctx.fillStyle = d.color || '#FFFFFF';
+        ctx.lineWidth = Math.max(1, 1 / cam.zoom * 0.5) * cam.zoom < 2 ? 1 : 1.5;
+
+        switch (d.type) {
+          case 'line': {
+            const a = worldToScreen(d.x1, d.y1), b = worldToScreen(d.x2, d.y2);
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            break;
+          }
+          case 'circle': {
+            const c = worldToScreen(d.cx, d.cy);
+            ctx.beginPath(); ctx.arc(c.x, c.y, d.r * cam.zoom, 0, Math.PI * 2); ctx.stroke();
+            break;
+          }
+          case 'arc': {
+            const c = worldToScreen(d.cx, d.cy);
+            // DXF arcs go counter-clockwise; canvas arcs go clockwise by default
+            ctx.beginPath(); ctx.arc(c.x, c.y, d.r * cam.zoom, -d.ea, -d.sa); ctx.stroke();
+            break;
+          }
+          case 'ellipse': {
+            const c = worldToScreen(d.cx, d.cy);
+            const a = Math.sqrt(d.mx * d.mx + d.my * d.my) * cam.zoom;
+            const b = a * d.ratio;
+            const rot = Math.atan2(d.my, d.mx);
+            ctx.beginPath(); ctx.ellipse(c.x, c.y, a, b, -rot, -d.ea, -d.sa, true); ctx.stroke();
+            break;
+          }
+          case 'polyline': {
+            if (d.pts.length < 2) break;
+            ctx.beginPath();
+            const first = worldToScreen(d.pts[0].x, d.pts[0].y);
+            ctx.moveTo(first.x, first.y);
+            for (let j = 1; j < d.pts.length; j++) {
+              const p = worldToScreen(d.pts[j].x, d.pts[j].y);
+              const prevBulge = d.pts[j - 1].bulge;
+              if (prevBulge && Math.abs(prevBulge) > 1e-6) {
+                // Bulge arc
+                const prev = d.pts[j - 1];
+                const cur = d.pts[j];
+                const dx = cur.x - prev.x, dy = cur.y - prev.y;
+                const chord = Math.sqrt(dx * dx + dy * dy);
+                const sagitta = Math.abs(prevBulge) * chord / 2;
+                const r = (chord * chord / 4 + sagitta * sagitta) / (2 * sagitta);
+                const sp = worldToScreen(prev.x, prev.y);
+                const ep = worldToScreen(cur.x, cur.y);
+                const midX = (sp.x + ep.x) / 2, midY = (sp.y + ep.y) / 2;
+                const screenDx = ep.x - sp.x, screenDy = ep.y - sp.y;
+                const screenChord = Math.sqrt(screenDx * screenDx + screenDy * screenDy);
+                if (screenChord > 0.5) {
+                  const screenR = r * cam.zoom;
+                  const h = Math.sqrt(Math.max(0, screenR * screenR - screenChord * screenChord / 4));
+                  const sign = prevBulge > 0 ? 1 : -1;
+                  const cx = midX + sign * h * (-screenDy / screenChord);
+                  const cy = midY + sign * h * (screenDx / screenChord);
+                  const startAngle = Math.atan2(sp.y - cy, sp.x - cx);
+                  const endAngle = Math.atan2(ep.y - cy, ep.x - cx);
+                  ctx.arc(cx, cy, Math.abs(screenR), startAngle, endAngle, prevBulge < 0);
+                } else {
+                  ctx.lineTo(ep.x, ep.y);
+                }
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+            }
+            if (d.closed) ctx.closePath();
+            ctx.stroke();
+            break;
+          }
+          case 'point': {
+            const p = worldToScreen(d.x, d.y);
+            ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+            break;
+          }
+          case 'text': {
+            const p = worldToScreen(d.x, d.y);
+            const fontSize = Math.max(8, d.height * cam.zoom * 0.8);
+            if (fontSize < 4) break; // Too small to render
+            ctx.font = `${Math.min(fontSize, 48)}px "JetBrains Mono", monospace`;
+            ctx.fillText(d.text, p.x, p.y);
+            break;
+          }
+        }
+      }
+
+      // Update zoom display
+      zoomEl.textContent = Math.round(cam.zoom * 100) + '%';
+    }
+
+    /* ── Load DXF file ── */
+    function loadDXF(text, fileName) {
+      loadingEl.classList.remove('hidden'); loadingEl.classList.add('flex');
+      requestAnimationFrame(() => {
+        try {
+          const parsed = parseDXF(text);
+          entities = buildDrawables(parsed);
+          layers = parsed.layers;
+          bounds = computeBounds(entities);
+          dxfLoaded = true;
+
+          emptyState.classList.add('hidden');
+          hintEl.classList.remove('hidden');
+          infoEl.classList.remove('hidden');
+
+          $('dxf-entity-count').textContent = entities.length;
+          $('dxf-layer-count').textContent = Object.keys(layers).length || '1';
+          const bw = (bounds.maxX - bounds.minX).toFixed(1);
+          const bh = (bounds.maxY - bounds.minY).toFixed(1);
+          $('dxf-bounds').textContent = `${bw} × ${bh}`;
+
+          // Update file badge
+          const badge = $('file-badge');
+          badge.textContent = fileName;
+          badge.classList.remove('hidden');
+
+          fitView();
+          toastDxf('Loaded ' + fileName, 'success');
+        } catch (err) {
+          console.error('DXF parse error:', err);
+          toastDxf('Failed to parse DXF: ' + err.message, 'error');
+        } finally {
+          loadingEl.classList.add('hidden'); loadingEl.classList.remove('flex');
+        }
+      });
+    }
+
+    function toastDxf(msg, type) {
+      const c = { info: 'border-amber-500/50', error: 'border-red-500/50', success: 'border-green-500/50' };
+      const el = document.createElement('div');
+      el.className = `toast-enter ${c[type] || c.info} border bg-zinc-900 rounded-lg px-4 py-2 text-xs font-mono text-zinc-300 shadow-lg max-w-xs`;
+      el.textContent = msg;
+      $('toasts').appendChild(el);
+      setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+    }
+
+    /* ── File input ── */
+    $('btn-open-dxf').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => loadDXF(reader.result, file.name);
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+
+    /* ── Drag & drop ── */
+    viewport.addEventListener('dragenter', e => {
+      e.preventDefault();
+      if (!$('view-dxf').classList.contains('hidden')) {
+        dragOverlay.classList.remove('hidden'); dragOverlay.classList.add('flex');
+      }
+    });
+    viewport.addEventListener('dragover', e => e.preventDefault());
+    viewport.addEventListener('dragleave', e => {
+      if (e.relatedTarget && viewport.contains(e.relatedTarget)) return;
+      dragOverlay.classList.add('hidden'); dragOverlay.classList.remove('flex');
+    });
+    viewport.addEventListener('drop', e => {
+      e.preventDefault();
+      dragOverlay.classList.add('hidden'); dragOverlay.classList.remove('flex');
+      if ($('view-dxf').classList.contains('hidden')) return;
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.toLowerCase().endsWith('.dxf')) {
+        const reader = new FileReader();
+        reader.onload = () => loadDXF(reader.result, file.name);
+        reader.readAsText(file);
+      }
+    });
+
+    /* ── Pan & Zoom ── */
+    let isPanning = false, panStart = { x: 0, y: 0 };
+
+    canvas.addEventListener('wheel', e => {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      // Zoom toward mouse position
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const cx = canvas.width / (2 * (window.devicePixelRatio || 1));
+      const cy = canvas.height / (2 * (window.devicePixelRatio || 1));
+      const wx = cam.x + (mx - cx) / cam.zoom;
+      const wy = cam.y - (my - cy) / cam.zoom;
+
+      cam.zoom *= factor;
+      cam.zoom = Math.max(0.001, Math.min(cam.zoom, 1e6));
+
+      cam.x = wx - (mx - cx) / cam.zoom;
+      cam.y = wy + (my - cy) / cam.zoom;
+
+      render();
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', e => {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      isPanning = true;
+      panStart = { x: e.clientX, y: e.clientY };
+      canvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isPanning) return;
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
+      cam.x -= dx / cam.zoom;
+      cam.y += dy / cam.zoom;
+      panStart = { x: e.clientX, y: e.clientY };
+      render();
+    });
+    window.addEventListener('mouseup', () => {
+      isPanning = false;
+      canvas.style.cursor = '';
+    });
+
+    // Touch support
+    let lastTouchDist = 0;
+    canvas.addEventListener('touchstart', e => {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      if (e.touches.length === 1) {
+        isPanning = true;
+        panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      e.preventDefault();
+      if (e.touches.length === 1 && isPanning) {
+        const dx = e.touches[0].clientX - panStart.x;
+        const dy = e.touches[0].clientY - panStart.y;
+        cam.x -= dx / cam.zoom;
+        cam.y += dy / cam.zoom;
+        panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        render();
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        if (lastTouchDist > 0) {
+          cam.zoom *= dist / lastTouchDist;
+          cam.zoom = Math.max(0.001, Math.min(cam.zoom, 1e6));
+          render();
+        }
+        lastTouchDist = dist;
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isPanning = false; lastTouchDist = 0; });
+
+    /* ── Buttons ── */
+    $('btn-dxf-fit').addEventListener('click', fitView);
+    $('btn-dxf-reset').addEventListener('click', resetView);
+    $('btn-dxf-grid').addEventListener('click', () => { showGrid = !showGrid; render(); });
+
+    $('btn-dxf-screenshot').addEventListener('click', () => {
+      if (!dxfLoaded) return;
+      const link = document.createElement('a');
+      link.download = 'dxf-screenshot.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    /* ── Keyboard shortcuts (when DXF tab is active) ── */
+    document.addEventListener('keydown', e => {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'f') fitView();
+      else if (k === 'r') resetView();
+      else if (k === 'g') { showGrid = !showGrid; render(); }
+      else if (k === 's' && !e.ctrlKey && !e.metaKey) $('btn-dxf-screenshot').click();
+    });
+
+    /* ── Resize ── */
+    function onResize() {
+      if ($('view-dxf').classList.contains('hidden')) return;
+      render();
+    }
+    window.addEventListener('resize', onResize);
+    new ResizeObserver(onResize).observe(viewport);
+    window.addEventListener('dxf-tab-activated', () => { requestAnimationFrame(render); });
+
+    // Initial render
+    render();
   })();
   </script>
 

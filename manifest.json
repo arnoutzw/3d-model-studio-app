@@ -1,7 +1,7 @@
 {
-  "name": "3D Model Viewer — STL / 3MF",
-  "short_name": "3D Viewer",
-  "description": "View and inspect STL and 3MF 3D printing files in the browser",
+  "name": "Model Studio — 3D / 2D DXF Viewer",
+  "short_name": "Model Studio",
+  "description": "View and inspect STL, 3MF, and DXF files in the browser",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",
@@ -22,7 +22,9 @@
       "accept": {
         "model/stl": [".stl"],
         "model/3mf": [".3mf"],
-        "application/vnd.ms-package.3dmanufacturing-3dmodel+xml": [".3mf"]
+        "application/vnd.ms-package.3dmanufacturing-3dmodel+xml": [".3mf"],
+        "image/vnd.dxf": [".dxf"],
+        "application/dxf": [".dxf"]
       }
     }
   ]
